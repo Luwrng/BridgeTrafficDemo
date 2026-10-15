@@ -1,0 +1,79 @@
+/* Giao diện đợt 1: dùng biến màu, không can thiệp trạng thái đèn hay luồng ảnh. */
+:root { color-scheme: light; --bg:#fff; --panel:#fff; --panel2:#f4f4f5; --line:#dbe3ef; --text:#182b43; --muted:#61738b; --blue:#2563eb; --red:#dc2626; --green:#15803d; --amber:#b45309; }
+:root[data-theme=dark] { color-scheme:dark; --bg:#000; --panel:#111; --panel2:#1b1b1b; --line:#383838; --text:#eef5ff; --muted:#a8bbd4; --blue:#60a5fa; --green:#86efac; --red:#fca5a5; --amber:#fcd34d; }
+body { background:var(--bg); }
+.app-header { background:var(--panel); gap:18px; padding:10px 18px; }
+.app-header h1 { font-size:21px; margin:0; }
+.app-header p { margin:2px 0 0; }
+.app-navigation { display:flex; gap:5px; margin-left:auto; }
+button { background:var(--panel2); border-color:var(--line); color:var(--text); }
+button:hover { background:color-mix(in srgb,var(--blue) 10%,var(--panel)); }
+button.primary, button[aria-pressed=true] { background:#2563eb; border-color:#2563eb; color:white; }
+button.primary:hover { background:#1d4ed8; }
+select,input { background:var(--panel); border-color:var(--line); color:var(--text); }
+label,summary,th { color:var(--text); }
+.panel { box-shadow:0 3px 14px #263b5810; scrollbar-color:var(--line) var(--panel); }
+.settings-sidebar,.camera-card,.camera-settings { background:var(--panel2); }
+.settings-camera-tab[aria-selected=true] { background:color-mix(in srgb,var(--blue) 10%,var(--panel)); border-color:var(--blue); color:var(--blue); }
+.settings-camera-tab[aria-selected=true] small { color:var(--muted); }
+.camera-settings-dialog { border-color:var(--line); }
+.camera-plate { color:var(--green); }
+.camera-source-note { color:var(--blue); }
+.camera-feed-wrap { border-color:var(--line); }
+/* Khung theo đúng 16:9; tránh max-height làm thừa viền đen với nguồn 16:9. */
+.camera-card:not(.is-expanded) .camera-feed-wrap { max-height:none; }
+.camera-panel { align-self:start; max-height:100%; }
+/* Cân hai nửa màn hình, tăng bốn ảnh mà vẫn giữ lưới 2×2 và tỷ lệ 16:9. */
+@media(min-width:1101px) { #monitorView { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
+.icon-button,#openThemeBtn { width:36px; height:36px; padding:0; font-size:23px; display:inline-grid; place-items:center; flex:none; }
+.camera-expand { width:34px; height:34px; padding:0; font-size:24px; display:grid; place-items:center; }
+.d-plate-label { fill:#fff; stroke:#10233a; stroke-width:3px; paint-order:stroke; font:bold 19px ui-monospace,monospace; }
+.map-site.d-occupied .bridge-capacity { visibility:hidden; }
+.camera-placeholder { color:#c9d7e9; }
+.camera-expand { background:#10233ad9; color:#fff; }
+.camera-config-feedback.config-error { color:var(--red); }
+th,td { border-color:var(--line); }
+.badge { background:var(--panel2); color:var(--text); }
+.badge.red { background:#fee2e2; color:#991b1b; }
+.badge.green { background:#dcfce7; color:#166534; }
+.badge.amber { background:#fef3c7; color:#92400e; }
+.records-view { flex:1; min-height:0; width:calc(100% - 24px); max-width:1896px; margin:12px auto; padding:20px; background:var(--panel); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column; gap:16px; }
+.records-heading,.records-toolbar,.records-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.records-heading h2 { font-size:22px; }
+.records-current { padding:12px; border:1px solid var(--line); border-radius:8px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; background:var(--panel2); }
+.records-current p { margin:6px 0 0; }
+#confirmExitForm { display:grid; gap:9px; }
+#confirmExitForm input,#confirmExitForm select,#confirmExitForm textarea { width:100%; box-sizing:border-box; padding:9px; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:6px; }
+.records-list-tabs,.visit-row-actions { display:flex; gap:6px; align-items:center; }
+.visit-row-actions { flex-wrap:wrap; }
+.visit-trash-button { color:var(--red); }
+.gate-event-note { font-weight:600; color:var(--text); overflow-wrap:anywhere; }
+.delete-visit-dialog { width:min(480px,94vw); max-height:90dvh; overflow:auto; margin:auto; padding:20px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; }
+.delete-visit-dialog::backdrop { background:#14223899; }
+.delete-visit-dialog p { line-height:1.5; }
+.danger-button { background:#dc2626; color:#fff; border-color:#dc2626; }
+.danger-button:hover { background:#b91c1c; }
+.records-table-wrap { flex:1; min-height:170px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+.records-table { font-size:13px; min-width:760px; }
+.records-table th,.records-table td { padding:14px 12px; }
+.records-table td strong { display:block; font-family:ui-monospace,Consolas,monospace; font-size:14px; }
+.records-table td small { display:block; margin-top:4px; color:var(--muted); }
+.records-empty { text-align:center; padding:48px 20px!important; color:var(--muted); }
+.visit-detail-dialog { width:min(1080px,94vw); height:min(820px,94dvh); margin:auto; padding:0; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); }
+.visit-detail-dialog[open] { display:flex; flex-direction:column; }
+.visit-detail-dialog::backdrop { background:#14223899; }
+.visit-detail-content { padding:20px; overflow:auto; }
+.visit-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 20px; }
+.visit-facts > div { padding:12px; border:1px solid var(--line); border-radius:8px; }
+.visit-facts dt { color:var(--muted); font-size:12px; }
+.visit-facts dd { margin:5px 0 0; font-weight:650; overflow-wrap:anywhere; }
+.evidence-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.evidence-card { border:1px solid var(--line); border-radius:9px; padding:12px; }
+.evidence-card h3 { margin:0 0 10px; }
+.evidence-scene { display:block; width:100%; max-height:320px; object-fit:contain; background:#07101a; border-radius:5px; }
+.evidence-crop { display:block; max-width:100%; height:70px; margin:12px 0; object-fit:contain; }
+.evidence-card a { color:var(--blue); }
+.evidence-card .note { overflow-wrap:anywhere; }
+@media(min-width:1101px) { #recordsView { overflow:hidden; } }
+@media(max-width:800px) { .app-header { flex-wrap:wrap; gap:8px; padding:10px; } .app-navigation { order:3; width:100%; margin:0; } .app-navigation button { flex:1; } .records-view { padding:12px; } .visit-facts { grid-template-columns:repeat(2,minmax(0,1fr)); } .evidence-grid { grid-template-columns:1fr; } }
+@media(max-width:480px) { .app-header h1 { font-size:18px; } .header-actions { gap:4px; } .header-actions button { padding:6px; font-size:11px; } .visit-facts { grid-template-columns:1fr; } }

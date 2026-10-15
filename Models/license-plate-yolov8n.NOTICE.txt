@@ -1,0 +1,7 @@
+Model: YOLOv8n license plate detector
+Publisher: ml-debi
+Source: https://huggingface.co/ml-debi/yolov8-license-plate-detection
+Revision: 8062e8e86734e272c60fa9a819433327ebdb66d7
+License declared by publisher: MIT
+Model file: license-plate-yolov8n.onnx
+SHA-256: 85d236280a1301ad98907947d284951dd2b20c23a6786ff50f7e6a8ec515bd50

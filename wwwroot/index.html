@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản lý xe ra vào</title>
+  <link rel="stylesheet" href="/css/site.css?v=23">
+  <link rel="stylesheet" href="/css/management.css?v=6">
+  <script src="/js/theme.js?v=2" defer></script>
+  <script src="/js/camera-polling.js?v=1" defer></script>
+  <script src="/js/service-polling.js?v=1" defer></script>
+  <script src="/js/recognition.js?v=24" defer></script>
+  <script src="/js/settings.js?v=2" defer></script>
+  <script src="/js/app.js?v=27" defer></script>
+  <script src="/js/vehicle-records.js?v=9" defer></script>
+</head>
+<body>
+<header class="app-header">
+  <div>
+    <h1>Quản lý xe ra vào</h1>
+    <p class="note">Giám sát camera · Hồ sơ và bằng chứng</p>
+  </div>
+  <nav class="app-navigation" aria-label="Màn hình ứng dụng"><button id="showMonitorBtn" type="button" aria-pressed="true">Giám sát</button><button id="showRecordsBtn" type="button" aria-pressed="false">Hồ sơ vào–ra</button></nav>
+  <div class="header-actions"><button id="openThemeBtn" type="button" aria-label="Chuyển sang nền đen" title="Đổi nền trắng / đen">◐</button><button id="openSettingsBtn" class="settings-trigger" type="button" aria-haspopup="dialog" aria-controls="cameraSettingsDialog">⚙ Cài đặt</button></div>
+</header>
+<main id="monitorView">
+  <section class="panel map-panel">
+    <div class="section-title">
+      <h2>01 / Sơ đồ giao thông</h2>
+      <div class="map-status">
+        <span id="bridgeBadge" class="badge amber">D = UNKNOWN</span>
+      </div>
+    </div>
+    <svg class="map map-site" viewBox="0 0 760 920" role="img" aria-label="Sơ đồ theo ảnh tham khảo: A ở dưới trái, D ngang, B và C bên phải, E cạnh barrier">
+      <defs>
+        <pattern id="roofPattern" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#76827b"/><path d="M0 6H12" stroke="#a2aaa0" stroke-width="2"/></pattern>
+        <pattern id="parkingPattern" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M2 0V22" stroke="#c3c8bd" stroke-width="2"/></pattern>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z"/></marker>
+        <g id="siteTree"><circle r="17" fill="#244b3d"/><circle cx="-7" cy="-4" r="12" fill="#315d49"/><circle cx="7" cy="-7" r="10" fill="#3c6851"/></g>
+      </defs>
+      <rect width="760" height="920" fill="#23362f"/>
+      <path d="M0 0H138C162 116 151 215 112 341S79 533 54 662L0 700Z" fill="#163c4b"/>
+      <path d="M139 0C163 116 151 215 112 341S79 533 54 662" fill="none" stroke="#5c7774" stroke-width="9"/>
+      <path d="M202 0C184 157 153 271 124 358" fill="none" stroke="#6c776f" stroke-width="35"/>
+      <path d="M201 0C184 157 153 271 124 358" fill="none" stroke="#bfc7b8" stroke-width="2"/>
+      <g class="site-buildings">
+        <rect x="240" y="68" width="84" height="124" rx="3" fill="url(#roofPattern)"/>
+        <path d="M240 68L282 47L324 68" fill="#53645b" stroke="#a2aaa0" stroke-width="3"/>
+        <rect x="444" y="105" width="129" height="146" rx="3" fill="url(#roofPattern)"/>
+        <rect x="437" y="99" width="143" height="158" rx="3" fill="none" stroke="#98a59a" stroke-width="5"/>
+        <rect x="332" y="466" width="147" height="175" rx="3" fill="url(#roofPattern)"/>
+        <path d="M332 466L405 444L479 466" fill="#53645b" stroke="#a2aaa0" stroke-width="3"/>
+        <rect x="402" y="693" width="90" height="96" rx="3" fill="url(#roofPattern)"/>
+        <rect x="431" y="823" width="133" height="73" rx="3" fill="url(#roofPattern)"/>
+        <rect x="520" y="547" width="69" height="131" fill="#46544e" stroke="#a7b5a4" stroke-width="2"/>
+        <rect x="520" y="547" width="69" height="131" fill="url(#parkingPattern)"/>
+      </g>
+      <g opacity=".92">
+        <use href="#siteTree" x="228" y="216"/><use href="#siteTree" x="246" y="251"/><use href="#siteTree" x="222" y="287"/>
+        <use href="#siteTree" x="282" y="488"/><use href="#siteTree" x="288" y="541"/><use href="#siteTree" x="297" y="590"/>
+        <use href="#siteTree" x="297" y="639"/><use href="#siteTree" x="322" y="686"/><use href="#siteTree" x="371" y="680"/>
+        <use href="#siteTree" x="515" y="424"/><use href="#siteTree" x="550" y="447"/><use href="#siteTree" x="566" y="483"/>
+        <use href="#siteTree" x="561" y="714"/><use href="#siteTree" x="570" y="754"/><use href="#siteTree" x="578" y="795"/>
+        <use href="#siteTree" x="358" y="826"/><use href="#siteTree" x="373" y="866"/>
+      </g>
+      <path class="site-road-edge" d="M265 420C225 494 184 556 159 620C131 691 157 752 203 809C236 851 286 859 327 831C356 811 361 781 344 744L253 534"/>
+      <path class="site-road" d="M265 420C225 494 184 556 159 620C131 691 157 752 203 809C236 851 286 859 327 831C356 811 361 781 344 744L253 534"/>
+      <path class="site-road-edge" d="M265 420L307 340H630M630 20V920M390 340V256L359 208"/>
+      <path class="site-road" d="M265 420L307 340H630M630 20V920M390 340V256L359 208"/>
+      <path class="site-lane" d="M265 420C225 494 184 556 159 620C131 691 157 752 203 809C236 851 286 859 327 831C356 811 361 781 344 744L253 534"/>
+      <path class="site-lane" d="M265 420L307 340H630M630 32V907M390 340V256L359 208"/>
+      <path class="bridge site-exclusive" d="M305 307H602V373H319L286 436L244 414Z"/>
+      <text x="474" y="335" text-anchor="middle" class="bridge-label">D · VÙNG ĐỘC QUYỀN</text>
+      <text x="474" y="357" text-anchor="middle" class="small-svg bridge-capacity">TỐI ĐA 1 XE</text>
+      <g id="svgBarrier" transform="translate(366 304)"><rect x="-6" y="-6" width="12" height="12" rx="2" class="barrier-post"/><path id="barrierArm" d="M0 0V72" class="barrier-arm closed"/></g>
+      <path d="M324 264L354 294" stroke="#f5d66b" stroke-width="3" fill="none"/>
+      <text x="271" y="254" class="site-barrier-label">BARRIER</text>
+      <g class="node" transform="translate(265 420)"><circle r="19"/><text text-anchor="middle" y="7">A</text></g>
+      <g class="node" transform="translate(630 485)"><circle r="19"/><text text-anchor="middle" y="7">B</text></g>
+      <g class="node" transform="translate(630 210)"><circle r="19"/><text text-anchor="middle" y="7">C</text></g>
+      <g class="node" transform="translate(390 265)"><circle r="19"/><text text-anchor="middle" y="7">E</text></g>
+      <g transform="translate(209 407)"><rect x="-9" y="-12" width="62" height="24" rx="6" class="signal-housing"/><circle id="svgAR" cx="3" r="6" class="lamp-red"/><circle cx="22" r="6" class="lamp-off"/><circle id="svgAG" cx="41" r="6" class="lamp-off"/></g>
+      <g transform="translate(595 450)"><rect x="-9" y="-12" width="62" height="24" rx="6" class="signal-housing"/><circle id="svgBR" cx="3" r="6" class="lamp-red"/><circle cx="22" r="6" class="lamp-off"/><circle id="svgBG" cx="41" r="6" class="lamp-off"/></g>
+      <g id="activeDVehicle" class="active-d-vehicle" transform="translate(474 340)" style="display:none" role="img" aria-label="Xe đang được ghi nhận trong vùng D">
+        <title>Xe có lượt vào chưa có lượt ra</title>
+        <ellipse cy="18" rx="44" ry="9" fill="#0005"/>
+        <g fill="#111827" stroke="#94a3b8" stroke-width="1.5"><rect x="-28" y="-22" width="14" height="8" rx="3"/><rect x="17" y="-22" width="14" height="8" rx="3"/><rect x="-28" y="14" width="14" height="8" rx="3"/><rect x="17" y="14" width="14" height="8" rx="3"/></g>
+        <rect x="-38" y="-16" width="76" height="32" rx="10" fill="#38bdf8" stroke="#e0f2fe" stroke-width="2"/>
+        <rect x="-16" y="-12" width="32" height="24" rx="5" fill="#075985"/>
+        <path d="M13 -11L23 -8V8L13 11Z" fill="#d9f3ff"/><path d="M-17 -11L-26 -8V8L-17 11Z" fill="#b2dceb"/>
+        <path d="M32 -9V-5M32 5V9" stroke="#fef3c7" stroke-width="3" stroke-linecap="round"/>
+      </g>
+      <text id="activeDPlate" x="474" y="383" text-anchor="middle" class="d-plate-label"></text>
+      <g id="plateMarkers" aria-label="Biển số được camera xác nhận"></g>
+      <text x="26" y="32" class="small-svg">MẶT BẰNG THEO ẢNH THAM KHẢO</text>
+      <text x="26" y="53" class="site-caption">Sơ đồ minh họa · không theo tỷ lệ thực địa</text>
+    </svg>
+    <p id="gateEventNote" class="note gate-event-note" role="status">Chờ camera xác nhận lượt vào–ra.</p>
+    <p id="mapDetectionNote" class="note">Chưa có dữ liệu OCR. Nhãn xe sẽ xuất hiện tại camera phát hiện; không nội suy vị trí giữa các camera.</p>
+  </section>
+
+  <section class="panel camera-panel">
+    <div class="section-title"><h2>02 / Camera A · B · C · E</h2></div>
+    <div class="camera-grid">
+      <article id="cameraACard" class="camera-card">
+        <div class="camera-detail-tools" hidden><span>Xem chi tiết camera A</span><button class="camera-close" type="button">← Quay lại</button></div>
+        <div class="camera-card-head"><b id="cameraATitle">CAM A</b></div>
+        <div class="camera-feed-wrap">
+          <img id="cameraAFeed" alt="Luồng video của ô camera A" crossorigin="anonymous" hidden>
+          <video id="cameraAVideo" controls playsinline preload="metadata" tabindex="0" hidden></video>
+          <canvas id="cameraADetectionOverlay" class="detection-overlay" aria-label="Vùng biển số phát hiện tại ô A" hidden></canvas>
+          <div id="cameraAPlaceholder" class="camera-placeholder">Đang kiểm tra nguồn camera</div>
+          <button class="camera-expand" type="button" aria-label="Phóng to camera A" aria-haspopup="dialog"><span aria-hidden="true">⤢</span></button>
+        </div>
+        <strong id="cameraAPlate" class="camera-plate" aria-live="polite" hidden></strong>
+        <div class="camera-diagnostics" hidden>
+          <div id="cameraARecognitionPreview" class="recognition-preview" hidden><img id="cameraARecognitionCrop" alt="Ảnh biển số được đọc riêng tại ô A"><small id="cameraARecognitionFrameInfo"></small></div>
+          <span id="cameraAOcrStatus" class="badge amber">CHỜ OCR</span><small id="cameraALastSeen">Chờ khung hình thực tế</small><small id="cameraARawText">OCR gốc: —</small>
+          <span id="cameraARecognitionCount"></span><div id="cameraARecognitionCurrentList"></div>
+        </div>
+      </article>
+      <article id="cameraBCard" class="camera-card">
+        <div class="camera-detail-tools" hidden><span>Xem chi tiết camera B</span><button class="camera-close" type="button">← Quay lại</button></div>
+        <div class="camera-card-head"><b id="cameraBTitle">CAM B</b></div>
+        <div class="camera-feed-wrap">
+          <img id="cameraBFeed" alt="Luồng video của ô camera B" crossorigin="anonymous" hidden>
+          <video id="cameraBVideo" controls playsinline preload="metadata" tabindex="0" hidden></video>
+          <canvas id="cameraBDetectionOverlay" class="detection-overlay" aria-label="Vùng biển số phát hiện tại ô B" hidden></canvas>
+          <div id="cameraBPlaceholder" class="camera-placeholder">Đang kiểm tra nguồn camera</div>
+          <button class="camera-expand" type="button" aria-label="Phóng to camera B" aria-haspopup="dialog"><span aria-hidden="true">⤢</span></button>
+        </div>
+        <strong id="cameraBPlate" class="camera-plate" aria-live="polite" hidden></strong>
+        <div class="camera-diagnostics" hidden>
+          <div id="cameraBRecognitionPreview" class="recognition-preview" hidden><img id="cameraBRecognitionCrop" alt="Ảnh biển số được đọc riêng tại ô B"><small id="cameraBRecognitionFrameInfo"></small></div>
+          <span id="cameraBOcrStatus" class="badge amber">CHỜ OCR</span><small id="cameraBLastSeen">Chờ khung hình thực tế</small><small id="cameraBRawText">OCR gốc: —</small>
+          <span id="cameraBRecognitionCount"></span><div id="cameraBRecognitionCurrentList"></div>
+        </div>
+      </article>
+      <article id="cameraCCard" class="camera-card">
+        <div class="camera-detail-tools" hidden><span>Xem chi tiết camera C</span><button class="camera-close" type="button">← Quay lại</button></div>
+        <div class="camera-card-head"><b id="cameraCTitle">CAM C</b></div>
+        <div class="camera-feed-wrap">
+          <img id="cameraCFeed" alt="Luồng video của ô camera C" crossorigin="anonymous" hidden>
+          <video id="cameraCVideo" controls playsinline preload="metadata" tabindex="0" hidden></video>
+          <canvas id="cameraCDetectionOverlay" class="detection-overlay" aria-label="Vùng biển số phát hiện tại ô C" hidden></canvas>
+          <div id="cameraCPlaceholder" class="camera-placeholder">Đang kiểm tra nguồn camera</div>
+          <button class="camera-expand" type="button" aria-label="Phóng to camera C" aria-haspopup="dialog"><span aria-hidden="true">⤢</span></button>
+        </div>
+        <strong id="cameraCPlate" class="camera-plate" aria-live="polite" hidden></strong>
+        <div class="camera-diagnostics" hidden>
+          <div id="cameraCRecognitionPreview" class="recognition-preview" hidden><img id="cameraCRecognitionCrop" alt="Ảnh biển số được đọc riêng tại ô C"><small id="cameraCRecognitionFrameInfo"></small></div>
+          <span id="cameraCOcrStatus" class="badge amber">CHỜ OCR</span><small id="cameraCLastSeen">Chờ khung hình thực tế</small><small id="cameraCRawText">OCR gốc: —</small>
+          <span id="cameraCRecognitionCount"></span><div id="cameraCRecognitionCurrentList"></div>
+        </div>
+      </article>
+      <article id="cameraECard" class="camera-card">
+        <div class="camera-detail-tools" hidden><span>Xem chi tiết camera E</span><button class="camera-close" type="button">← Quay lại</button></div>
+        <div class="camera-card-head"><b id="cameraETitle">CAM E</b></div>
+        <div class="camera-feed-wrap">
+          <img id="cameraEFeed" alt="Luồng video của ô camera E" crossorigin="anonymous" hidden>
+          <video id="cameraEVideo" controls playsinline preload="metadata" tabindex="0" hidden></video>
+          <canvas id="cameraEDetectionOverlay" class="detection-overlay" aria-label="Vùng biển số phát hiện tại ô E" hidden></canvas>
+          <div id="cameraEPlaceholder" class="camera-placeholder">Đang kiểm tra nguồn camera</div>
+          <button class="camera-expand" type="button" aria-label="Phóng to camera E" aria-haspopup="dialog"><span aria-hidden="true">⤢</span></button>
+        </div>
+        <strong id="cameraEPlate" class="camera-plate" aria-live="polite" hidden></strong>
+        <div class="camera-diagnostics" hidden>
+          <div id="cameraERecognitionPreview" class="recognition-preview" hidden><img id="cameraERecognitionCrop" alt="Ảnh biển số được đọc riêng tại ô E"><small id="cameraERecognitionFrameInfo"></small></div>
+          <span id="cameraEOcrStatus" class="badge amber">CHỜ OCR</span><small id="cameraELastSeen">Chờ khung hình thực tế</small><small id="cameraERawText">OCR gốc: —</small>
+          <span id="cameraERecognitionCount"></span><div id="cameraERecognitionCurrentList"></div>
+        </div>
+      </article>
+    </div>
+    <p id="cameraRecordingNote" class="note shared-camera-note" role="status">Thiết lập nguồn camera trong ⚙ Cài đặt → Camera & RTSP.</p>
+  </section>
+</main>
+
+<!-- Hồ sơ bền vững nằm ở màn hình riêng để giữ nguyên lưới bốn camera. -->
+<section id="recordsView" class="records-view" aria-labelledby="recordsTitle" hidden>
+  <div class="records-heading"><div><h2 id="recordsTitle">Hồ sơ xe vào–ra</h2><p id="recordsStorageInfo" class="note">Ngày giờ UTC+7 · ảnh bằng chứng theo từng lượt</p></div><button id="reloadRecordsBtn" type="button" class="icon-button" aria-label="Làm mới hồ sơ" title="Làm mới hồ sơ">↻</button></div>
+  <div class="records-current" aria-label="Xe đang giữ vùng D"><div><strong id="currentVisitStatus">Đang đọc trạng thái D…</strong><p id="currentVisitInfo" class="note"></p></div><div class="button-row"><button id="openCurrentVisitBtn" type="button" hidden>Xem lượt đang trong D</button><button id="openConfirmExitBtn" type="button" hidden>Xác nhận xe đã ra</button></div></div>
+  <p id="visitCounts" class="note" role="status"></p>
+  <div class="records-toolbar"><div class="records-list-tabs" role="group" aria-label="Danh sách hồ sơ"><button id="showActiveVisitsBtn" type="button" aria-pressed="true">Hồ sơ</button><button id="showDeletedVisitsBtn" type="button" aria-pressed="false">Thùng rác</button></div><span id="recordsStatus" class="note" role="status">Chưa tải hồ sơ</span></div>
+  <p id="recordsActionMessage" class="note" role="status" hidden></p>
+  <p id="recordingHealthMessage" class="note" role="status" hidden></p>
+  <div class="records-table-wrap"><table class="records-table"><thead><tr><th>Biển số</th><th>Cổng vào / ngày giờ</th><th>Cổng ra / ngày giờ</th><th>Thời gian lưu lại</th><th>Trạng thái</th><th>Ảnh / thao tác</th></tr></thead><tbody id="visitsTableBody"></tbody></table></div>
+  <div class="records-pagination"><span id="recordsPageInfo" class="note"></span><div><button id="recordsPreviousBtn" type="button">← Trước</button><button id="recordsNextBtn" type="button">Sau →</button></div></div>
+</section>
+
+<dialog id="confirmExitDialog" class="delete-visit-dialog" aria-labelledby="confirmExitTitle">
+  <div class="section-title"><h2 id="confirmExitTitle">Xác nhận xe đã ra</h2><button id="closeConfirmExitBtn" type="button" class="icon-button" aria-label="Đóng xác nhận xe ra">×</button></div>
+  <p>Chỉ dùng khi đã kiểm tra xe <strong id="confirmExitPlate"></strong> thực sự rời D nhưng camera bỏ lỡ lần đọc. Hồ sơ sẽ ghi là xác nhận thủ công, không tạo ảnh ra.</p>
+  <form id="confirmExitForm">
+    <label for="confirmExitCamera">Cổng ra</label><select id="confirmExitCamera" required><option value="">Chọn cổng đã ra</option><option>A</option><option>B</option><option>C</option><option>E</option></select>
+    <label for="confirmExitTime">Ngày giờ ra (UTC+7)</label><input id="confirmExitTime" type="datetime-local" step="1" required>
+    <label for="confirmExitReason">Lý do / cách kiểm tra xe đã ra</label><textarea id="confirmExitReason" minlength="5" maxlength="500" required></textarea>
+    <p id="confirmExitError" class="note" role="alert" hidden></p>
+    <div class="button-row"><button id="cancelConfirmExitBtn" type="button">Hủy</button><button id="submitConfirmExitBtn" type="submit">Xác nhận đã ra và mở xanh</button></div>
+  </form>
+</dialog>
+<dialog id="deleteVisitDialog" class="delete-visit-dialog" aria-labelledby="deleteVisitTitle">
+  <div class="section-title"><h2 id="deleteVisitTitle">Xóa hồ sơ?</h2><button id="closeDeleteVisitBtn" type="button" class="icon-button" aria-label="Đóng xác nhận xóa">×</button></div>
+  <p>Chuyển hồ sơ <strong id="deleteVisitPlate"></strong> vào Thùng rác. Bạn có thể khôi phục lại cả hồ sơ và ảnh.</p>
+  <p class="note">Xóa hồ sơ không kết thúc lượt xe. Nếu xe chưa được camera khác xác nhận ra, D vẫn có xe và đèn vẫn đỏ.</p>
+  <p id="deleteVisitError" class="note" role="alert" hidden></p>
+  <div class="button-row"><button id="cancelDeleteVisitBtn" type="button">Hủy</button><button id="confirmDeleteVisitBtn" class="danger-button" type="button">Xóa hồ sơ</button></div>
+</dialog>
+<dialog id="visitDetailDialog" class="visit-detail-dialog" aria-labelledby="visitDetailTitle">
+  <div class="settings-heading"><div><h2 id="visitDetailTitle">Hồ sơ lượt xe</h2><p id="visitDetailSubtitle" class="note"></p></div><button id="closeVisitDetailBtn" type="button">Đóng</button></div>
+  <div id="visitDetailContent" class="visit-detail-content"></div>
+</dialog>
+<dialog id="cameraSettingsDialog" class="camera-settings-dialog" aria-labelledby="settingsTitle">
+  <div class="settings-heading"><div><h2 id="settingsTitle">Cài đặt camera</h2><p class="note">Chọn camera để nhập RTSP hoặc thiết lập video riêng.</p></div><button id="closeSettingsBtn" type="button" class="icon-button" aria-label="Đóng cài đặt" title="Đóng cài đặt">×</button></div>
+  <div class="settings-layout">
+    <aside class="settings-sidebar"><p class="settings-category">CAMERA & RTSP</p><nav class="settings-menu" role="tablist" aria-label="Chọn camera cần thiết lập" aria-orientation="vertical">
+        <button id="settingsCameraATab" class="settings-camera-tab" role="tab" type="button" aria-selected="true" aria-controls="cameraASettingsPane" tabindex="0" data-camera="A"><span>Camera A</span><small>Nguồn RTSP / video</small></button>
+        <button id="settingsCameraBTab" class="settings-camera-tab" role="tab" type="button" aria-selected="false" aria-controls="cameraBSettingsPane" tabindex="-1" data-camera="B"><span>Camera B</span><small>Nguồn RTSP / video</small></button>
+        <button id="settingsCameraCTab" class="settings-camera-tab" role="tab" type="button" aria-selected="false" aria-controls="cameraCSettingsPane" tabindex="-1" data-camera="C"><span>Camera C</span><small>Nguồn RTSP / video</small></button>
+        <button id="settingsCameraETab" class="settings-camera-tab" role="tab" type="button" aria-selected="false" aria-controls="cameraESettingsPane" tabindex="-1" data-camera="E"><span>Camera E</span><small>Nguồn RTSP / video</small></button>
+    </nav></aside>
+    <div class="settings-content">
+      <section id="cameraASettingsPane" class="settings-pane" role="tabpanel" aria-labelledby="settingsCameraATab">
+        <h3>Camera A</h3>
+          <details class="camera-settings" open>
+            <summary hidden>Nguồn camera A</summary>
+            <form id="cameraAForm" class="camera-config">
+              <label for="cameraAUrl">Link RTSP camera A</label>
+              <div class="camera-url-entry">
+                <input id="cameraAUrl" type="password" autocomplete="new-password" spellcheck="false" placeholder="rtsp://địa-chỉ-camera:554/..." required>
+                <button id="cameraAShowUrlBtn" type="button" aria-label="Hiện hoặc ẩn link RTSP camera A" aria-pressed="false">Hiện</button>
+              </div>
+              <div class="button-row"><button id="cameraAConnectBtn" class="primary" type="submit">Kết nối ô A</button><button id="cameraADisconnectBtn" type="button">Ngắt nguồn ô A</button></div>
+              <p id="cameraAConfigMessage" class="camera-config-feedback note" aria-live="polite" hidden></p>
+            </form>
+            <p id="cameraAMessage" class="note" aria-live="polite">Thông tin đăng nhập chỉ giữ trong phiên máy chủ.</p>
+            <small id="cameraASource" class="camera-source-note">Dữ liệu riêng của ô A</small>
+            <details class="camera-video-options">
+              <summary>Video và nhận diện</summary>
+              <div class="video-source-controls">
+                <label for="cameraAVideoFile">Video riêng của ô A</label><input id="cameraAVideoFile" type="file" accept="video/*">
+                <label for="cameraASpeed">Tốc độ video ô A</label><select id="cameraASpeed"><option value="0.25">0,25× · rất chậm</option><option value="0.5">0,5× · chậm</option><option value="1" selected>1× · trực tiếp / bình thường</option></select>
+                <label class="shared-camera-option"><input id="cameraAAutoSlow" type="checkbox">Tự giảm tốc khi cần đọc rõ</label>
+                <small id="cameraAVideoSourceName" class="note">Chờ nguồn camera</small>
+                <div class="button-row"><button id="cameraAUseLiveSourceBtn" type="button">Luồng RTSP</button><button id="cameraARecognitionPauseBtn" type="button">Tạm dừng nhận diện</button><button id="cameraARecognizeStillBtn" type="button" disabled>Đọc khung dừng</button></div>
+                <div class="button-row"><button id="cameraAVideoBackBtn" type="button" disabled>−5 giây</button><button id="cameraAVideoPlayBtn" type="button" disabled>Phát video</button><button id="cameraAVideoForwardBtn" type="button" disabled>+5 giây</button></div>
+              </div>
+            </details>
+          </details>
+      </section>
+      <section id="cameraBSettingsPane" class="settings-pane" role="tabpanel" aria-labelledby="settingsCameraBTab" hidden>
+        <h3>Camera B</h3>
+          <details class="camera-settings" open>
+            <summary hidden>Nguồn camera B</summary>
+            <form id="cameraBForm" class="camera-config">
+              <label for="cameraBUrl">Link RTSP camera B</label>
+              <div class="camera-url-entry">
+                <input id="cameraBUrl" type="password" autocomplete="new-password" spellcheck="false" placeholder="rtsp://địa-chỉ-camera:554/..." required>
+                <button id="cameraBShowUrlBtn" type="button" aria-label="Hiện hoặc ẩn link RTSP camera B" aria-pressed="false">Hiện</button>
+              </div>
+              <div class="button-row"><button id="cameraBConnectBtn" class="primary" type="submit">Kết nối ô B</button><button id="cameraBDisconnectBtn" type="button">Ngắt nguồn ô B</button></div>
+              <p id="cameraBConfigMessage" class="camera-config-feedback note" aria-live="polite" hidden></p>
+            </form>
+            <p id="cameraBMessage" class="note" aria-live="polite">Thông tin đăng nhập chỉ giữ trong phiên máy chủ.</p>
+            <small id="cameraBSource" class="camera-source-note">Dữ liệu riêng của ô B</small>
+            <details class="camera-video-options">
+              <summary>Video và nhận diện</summary>
+              <div class="video-source-controls">
+                <label for="cameraBVideoFile">Video riêng của ô B</label><input id="cameraBVideoFile" type="file" accept="video/*">
+                <label for="cameraBSpeed">Tốc độ video ô B</label><select id="cameraBSpeed"><option value="0.25">0,25× · rất chậm</option><option value="0.5">0,5× · chậm</option><option value="1" selected>1× · trực tiếp / bình thường</option></select>
+                <label class="shared-camera-option"><input id="cameraBAutoSlow" type="checkbox">Tự giảm tốc khi cần đọc rõ</label>
+                <small id="cameraBVideoSourceName" class="note">Chờ nguồn camera</small>
+                <div class="button-row"><button id="cameraBUseLiveSourceBtn" type="button">Luồng RTSP</button><button id="cameraBRecognitionPauseBtn" type="button">Tạm dừng nhận diện</button><button id="cameraBRecognizeStillBtn" type="button" disabled>Đọc khung dừng</button></div>
+                <div class="button-row"><button id="cameraBVideoBackBtn" type="button" disabled>−5 giây</button><button id="cameraBVideoPlayBtn" type="button" disabled>Phát video</button><button id="cameraBVideoForwardBtn" type="button" disabled>+5 giây</button></div>
+              </div>
+            </details>
+          </details>
+      </section>
+      <section id="cameraCSettingsPane" class="settings-pane" role="tabpanel" aria-labelledby="settingsCameraCTab" hidden>
+        <h3>Camera C</h3>
+          <details class="camera-settings" open>
+            <summary hidden>Nguồn camera C</summary>
+            <form id="cameraCForm" class="camera-config">
+              <label for="cameraCUrl">Link RTSP camera C</label>
+              <div class="camera-url-entry">
+                <input id="cameraCUrl" type="password" autocomplete="new-password" spellcheck="false" placeholder="rtsp://địa-chỉ-camera:554/..." required>
+                <button id="cameraCShowUrlBtn" type="button" aria-label="Hiện hoặc ẩn link RTSP camera C" aria-pressed="false">Hiện</button>
+              </div>
+              <div class="button-row"><button id="cameraCConnectBtn" class="primary" type="submit">Kết nối ô C</button><button id="cameraCDisconnectBtn" type="button">Ngắt nguồn ô C</button></div>
+              <p id="cameraCConfigMessage" class="camera-config-feedback note" aria-live="polite" hidden></p>
+            </form>
+            <p id="cameraCMessage" class="note" aria-live="polite">Thông tin đăng nhập chỉ giữ trong phiên máy chủ.</p>
+            <small id="cameraCSource" class="camera-source-note">Dữ liệu riêng của ô C</small>
+            <details class="camera-video-options">
+              <summary>Video và nhận diện</summary>
+              <div class="video-source-controls">
+                <label for="cameraCVideoFile">Video riêng của ô C</label><input id="cameraCVideoFile" type="file" accept="video/*">
+                <label for="cameraCSpeed">Tốc độ video ô C</label><select id="cameraCSpeed"><option value="0.25">0,25× · rất chậm</option><option value="0.5">0,5× · chậm</option><option value="1" selected>1× · trực tiếp / bình thường</option></select>
+                <label class="shared-camera-option"><input id="cameraCAutoSlow" type="checkbox">Tự giảm tốc khi cần đọc rõ</label>
+                <small id="cameraCVideoSourceName" class="note">Chờ nguồn camera</small>
+                <div class="button-row"><button id="cameraCUseLiveSourceBtn" type="button">Luồng RTSP</button><button id="cameraCRecognitionPauseBtn" type="button">Tạm dừng nhận diện</button><button id="cameraCRecognizeStillBtn" type="button" disabled>Đọc khung dừng</button></div>
+                <div class="button-row"><button id="cameraCVideoBackBtn" type="button" disabled>−5 giây</button><button id="cameraCVideoPlayBtn" type="button" disabled>Phát video</button><button id="cameraCVideoForwardBtn" type="button" disabled>+5 giây</button></div>
+              </div>
+            </details>
+          </details>
+      </section>
+      <section id="cameraESettingsPane" class="settings-pane" role="tabpanel" aria-labelledby="settingsCameraETab" hidden>
+        <h3>Camera E</h3>
+          <details class="camera-settings" open>
+            <summary hidden>Nguồn camera E</summary>
+            <form id="cameraEForm" class="camera-config">
+              <label for="cameraEUrl">Link RTSP camera E</label>
+              <div class="camera-url-entry">
+                <input id="cameraEUrl" type="password" autocomplete="new-password" spellcheck="false" placeholder="rtsp://địa-chỉ-camera:554/..." required>
+                <button id="cameraEShowUrlBtn" type="button" aria-label="Hiện hoặc ẩn link RTSP camera E" aria-pressed="false">Hiện</button>
+              </div>
+              <div class="button-row"><button id="cameraEConnectBtn" class="primary" type="submit">Kết nối ô E</button><button id="cameraEDisconnectBtn" type="button">Ngắt nguồn ô E</button></div>
+              <p id="cameraEConfigMessage" class="camera-config-feedback note" aria-live="polite" hidden></p>
+            </form>
+            <p id="cameraEMessage" class="note" aria-live="polite">Thông tin đăng nhập chỉ giữ trong phiên máy chủ.</p>
+            <small id="cameraESource" class="camera-source-note">Dữ liệu riêng của ô E</small>
+            <details class="camera-video-options">
+              <summary>Video và nhận diện</summary>
+              <div class="video-source-controls">
+                <label for="cameraEVideoFile">Video riêng của ô E</label><input id="cameraEVideoFile" type="file" accept="video/*">
+                <label for="cameraESpeed">Tốc độ video ô E</label><select id="cameraESpeed"><option value="0.25">0,25× · rất chậm</option><option value="0.5">0,5× · chậm</option><option value="1" selected>1× · trực tiếp / bình thường</option></select>
+                <label class="shared-camera-option"><input id="cameraEAutoSlow" type="checkbox">Tự giảm tốc khi cần đọc rõ</label>
+                <small id="cameraEVideoSourceName" class="note">Chờ nguồn camera</small>
+                <div class="button-row"><button id="cameraEUseLiveSourceBtn" type="button">Luồng RTSP</button><button id="cameraERecognitionPauseBtn" type="button">Tạm dừng nhận diện</button><button id="cameraERecognizeStillBtn" type="button" disabled>Đọc khung dừng</button></div>
+                <div class="button-row"><button id="cameraEVideoBackBtn" type="button" disabled>−5 giây</button><button id="cameraEVideoPlayBtn" type="button" disabled>Phát video</button><button id="cameraEVideoForwardBtn" type="button" disabled>+5 giây</button></div>
+              </div>
+            </details>
+          </details>
+      </section>
+    </div>
+  </div>
+</dialog>
+<div id="cameraDetailBackdrop" class="camera-detail-backdrop" hidden></div>
+</body>
+</html>

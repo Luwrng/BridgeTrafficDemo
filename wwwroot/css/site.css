@@ -1,0 +1,273 @@
+:root {
+  color-scheme: dark;
+  --bg: #0a1220; --panel: #121f32; --panel2: #1a2b42; --line: #2d4360;
+  --text: #eef5ff; --muted: #a8bbd4; --red: #ef4444; --green: #22c55e; --amber: #f59e0b; --blue: #60a5fa;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: linear-gradient(135deg,#08101c,#122139); color: var(--text); font: 13px/1.4 system-ui,Segoe UI,Arial,sans-serif; }
+.app-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 14px; background: #0a1424; border-bottom: 1px solid var(--line); }
+.app-header > div { min-width: 0; }
+.header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; flex: none; }
+.settings-trigger { min-height: 34px; padding: 6px 12px; white-space: nowrap; }
+body.settings-open { overflow: hidden; }
+.camera-settings-dialog { width: min(940px,94vw); max-width: none; height: min(740px,calc(100dvh - 40px)); max-height: calc(100dvh - 40px); margin: auto; padding: 0; border: 1px solid #395576; border-radius: 12px; background: var(--panel); color: var(--text); box-shadow: 0 24px 80px #0008; }
+.camera-settings-dialog[open] { display: flex; flex-direction: column; }
+.camera-settings-dialog::backdrop { background: #020812c9; }
+.settings-heading { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.settings-heading h2 { font-size: 20px; }
+.settings-heading .note { margin-bottom: 0; }
+.settings-heading button { flex: none; padding: 8px 12px; }
+.settings-layout { display: grid; grid-template-columns: 210px minmax(0,1fr); flex: 1; min-height: 0; }
+.settings-sidebar { padding: 20px 12px; border-right: 1px solid var(--line); background: #0c192a; overflow: auto; }
+.settings-category { margin: 0 10px 14px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .8px; }
+.settings-menu { display: grid; gap: 7px; }
+.settings-camera-tab { display: grid; gap: 3px; text-align: left; padding: 12px; background: transparent; border-color: transparent; }
+.settings-camera-tab span { font-size: 14px; font-weight: 750; }
+.settings-camera-tab small { color: var(--muted); font-size: 11px; }
+.settings-camera-tab[aria-selected=true] { background: #1d3653; border-color: #4e86bc; color: #b9dcff; }
+.settings-content { min-width: 0; overflow: auto; padding: 20px 24px; }
+.settings-pane h3 { margin: 0 0 18px; font-size: 18px; }
+.settings-pane .camera-settings { padding: 0; margin: 0; border: 0; background: transparent; }
+.settings-pane .camera-config { grid-template-columns: minmax(0,1fr); gap: 8px; padding: 0 0 12px; }
+.settings-pane .camera-config label { font-size: 13px; }
+.settings-pane .camera-url-entry input { font-size: 13px; padding: 10px 12px; }
+.settings-pane .camera-config button { font-size: 12px; padding: 9px 12px; }
+.settings-pane .camera-settings > .note { margin: 4px 0 8px; font-size: 12px; }
+.settings-pane .camera-source-note { display: block; font-size: 11px; }
+.settings-pane .camera-video-options { margin-top: 18px; padding-top: 4px; }
+.settings-pane .camera-video-options > summary { font-size: 13px; padding: 9px 0; }
+.settings-pane .video-source-controls { border-bottom: 0; gap: 8px; }
+@media (max-width: 620px) {
+  .camera-settings-dialog { width: calc(100vw - 16px); height: calc(100dvh - 16px); max-height: none; }
+  .settings-heading { padding: 12px; flex-wrap: wrap; }
+  .settings-heading h2 { font-size: 18px; }
+  .settings-layout { grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr); }
+  .settings-sidebar { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px; }
+  .settings-category { margin: 0 2px 8px; }
+  .settings-menu { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px; }
+  .settings-camera-tab { padding: 10px 4px; text-align: center; }
+  .settings-camera-tab span { font-size: 12px; }
+  .settings-camera-tab small { display: none; }
+  .settings-content { padding: 16px 12px; }
+}
+h1 { font-size: clamp(18px,1.6vw,26px); line-height: 1.2; margin: 0 0 3px; }
+h2 { font-size: 16px; margin: 0; }
+p { margin: 5px 0; }
+.note { color: var(--muted); font-size: 11px; }
+.badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: 4px 7px; background: #26384f; color: #e4efff; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.badge.red { background: #54242c; color: #fecaca; }
+.badge.green { background: #12432d; color: #bbf7d0; }
+.badge.amber { background: #5a4316; color: #ffe3a3; }
+.badge.active-route { background: #574516; color: #ffe29a; white-space: normal; text-align: center; }
+main { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); grid-template-areas: 'map cameras'; align-items: start; gap: 10px; width: 100%; max-width: 1920px; margin: auto; padding: 10px; }
+.panel { min-width: 0; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 28px #0002; }
+.map-panel { grid-area: map; }
+.camera-panel { grid-area: cameras; }
+.operations-panel { grid-area: operations; }
+.section-title { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px 8px; margin-bottom: 8px; }
+.map-status { display: flex; justify-content: flex-end; align-items: center; gap: 5px; flex-wrap: wrap; }
+.map-site.d-occupied .site-exclusive { fill: #ef444455; stroke: #f87171; }
+.map-site.d-occupied .bridge-label { transform: translate(18px,-50px); font-size: 15px; }
+.map-site.d-occupied .bridge-capacity { transform: translateY(30px); }
+.active-d-vehicle { pointer-events: none; }
+.map { display: block; width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 6px; background: #142238; }
+.roadedge { stroke: #a3b3c6; stroke-width: 61; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+.road { stroke: #586a80; stroke-width: 52; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.centerline { stroke: #f3d26a; stroke-width: 2; stroke-dasharray: 8 8; fill: none; }
+.bridge { fill: #a9772b55; stroke: #f5d66b; stroke-width: 2; stroke-dasharray: 7 5; }
+.map text { font-family: system-ui,sans-serif; fill: #f5f8ff; font-weight: 800; }
+.bridge-label { font-size: 21px; fill: #fde68a !important; }
+.map-site { background: #23362f; }
+.map-site .site-road-edge { stroke: #a4afa0; stroke-width: 57; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.map-site .site-road { stroke: #606b65; stroke-width: 48; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.map-site .site-lane { stroke: #f3d86d; stroke-width: 2.5; stroke-dasharray: 10 9; fill: none; }
+.map-site .site-exclusive { fill: #d89d3d60; stroke: #f7c65c; stroke-width: 2; }
+.map-site .bridge-label { font-size: 18px; }
+.map-site .node circle { fill: #182a25; stroke: #f3d86d; }
+.map-site .node text, .map-site .site-barrier-label { fill: #f9e386; }
+.map-site .site-barrier-label { font-size: 17px; }
+.map-site .site-caption { font-size: 12px; fill: #c5d5c9; }
+.map-site .barrier-arm.open { transform: rotate(-85deg); }
+.map-site .vehicle .window { fill: #d5f2ff; }
+.small-svg, .sensor-label { font-size: 12px; }
+.node circle { fill: #12233a; stroke: #e8f1ff; stroke-width: 2; }
+.node text { font-size: 22px; }
+.sensor { fill: #fff; stroke: #0d1828; stroke-width: 3; }
+.route { stroke: #60a5fa; stroke-width: 5; stroke-dasharray: 10 6; fill: none; stroke-linecap: round; }
+.route-secondary { opacity: .35; stroke-dasharray: 4 8; }
+.active-vehicle-path { stroke: #fbbf24; stroke-width: 8; stroke-dasharray: 3 8; opacity: .9; pointer-events: none; }
+.signal-housing { fill: #070c14; stroke: #d7e6fb; }
+.lamp-red { fill: #ef4444; }
+.lamp-green { fill: #22c55e; }
+.lamp-off { fill: #334155; }
+.barrier-post { fill: #f5c451; stroke: #171d27; stroke-width: 2; }
+.barrier-arm { stroke: #f2f5f8; stroke-width: 7; stroke-linecap: round; }
+.barrier-arm.closed { stroke: #ef4444; }
+.barrier-arm.open { stroke: #22c55e; transform: rotate(65deg); transform-origin: 0 0; }
+.bypass-road-edge { stroke-width: 47; }
+.bypass-road { stroke-width: 38; }
+.branch-centerline { stroke-width: 2; }
+.vehicle { transition: transform .45s ease; }
+.map marker path { fill: #f3d26a; }
+.plate-marker { cursor: default; transition: opacity .18s ease; }
+.plate-marker rect { fill: #08111f; stroke: #34d399; stroke-width: 2; }
+.plate-marker text { font-family: system-ui,Segoe UI,Arial,sans-serif; font-size: 13px; font-weight: 800; fill: #f8fafc; }
+.plate-marker .marker-camera { font-size: 10px; fill: #a7f3d0; }
+.plate-marker.stale rect { stroke: #f59e0b; }
+.plate-marker.departed { opacity: .62; }
+.plate-marker .marker-status { font-size: 9px; fill: #fde68a; }
+.vehicle-plate-label { font: 700 11px system-ui,Segoe UI,Arial,sans-serif; fill: #f8fafc; }
+.vehicle-plate-label rect { fill: #08111f; stroke: #fbbf24; stroke-width: 1; }
+.vehicle-plate-label text { fill: #f8fafc; }
+button, select, input { border: 1px solid #405777; border-radius: 5px; color: var(--text); font: inherit; min-width: 0; }
+button { min-height: 34px; padding: 6px 10px; background: #263b58; font-weight: 750; cursor: pointer; }
+button:hover { background: #344d6c; }
+button.primary { background: #157a49; border-color: #2aab6c; }
+button.primary:hover { background: #198956; }
+button.next { background: #1c5782; border-color: #3183b8; }
+button.next:hover { background: #226994; }
+button:disabled { opacity: .48; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid #f5c451; outline-offset: 2px; }
+select, input { width: 100%; padding: 7px 8px; background: #0a1627; }
+label { display: block; margin: 0 0 4px; font-size: 11px; color: #dce8f8; }
+label span { color: var(--muted); font-size: 10px; font-weight: 400; }
+.button-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 5px 0 0; }
+.button-row button { flex: 1 1 auto; }
+summary { padding: 5px 0; color: #cfe4ff; font-size: 11px; font-weight: 700; cursor: pointer; overflow-wrap: anywhere; }
+details { min-width: 0; }
+.camera-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; align-items: start; }
+.camera-card { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 6px; background: #0c192a; border: 1px solid var(--line); border-radius: 6px; cursor: zoom-in; }
+.camera-card-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 3px 5px; font-size: 11px; }
+.camera-feed-wrap { position: relative; width: 100%; aspect-ratio: 16/9; flex: none; overflow: hidden; display: grid; place-items: center; border: 1px solid #2b405c; border-radius: 5px; background: #050a11; }
+.camera-card:not(.is-expanded) .camera-feed-wrap { max-height: clamp(112px,16vh,188px); }
+.camera-feed-wrap img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
+.camera-feed-wrap canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
+.camera-feed-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #050a11; }
+.camera-feed-wrap .detection-overlay { pointer-events: none; }
+.camera-feed-wrap.file-video .camera-expand { top: 5px; bottom: auto; }
+.recognition-preview { display: flex; align-items: center; gap: 6px; }
+.recognition-preview img { width: 56px; height: 28px; flex: none; object-fit: contain; background: #050a11; border: 1px solid var(--line); border-radius: 3px; }
+.recognition-preview small { color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
+.recognition-current summary { font-size: 10px; padding: 2px 0; }
+.recognition-current .badge { font-size: 8px; padding: 2px 4px; }
+.recognition-list { max-height: 160px; overflow: auto; }
+.recognition-item { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-top: 1px solid var(--line); }
+.recognition-item img { width: 70px; height: 44px; object-fit: contain; flex: none; }
+.recognition-item strong, .recognition-item small { display: block; overflow-wrap: anywhere; }
+.recognition-item strong { font-size: 11px; }
+.recognition-item small { font-size: 9px; color: var(--muted); }
+.video-source-controls { display: grid; gap: 5px; margin: 6px 0; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+.video-source-controls label { margin: 0; }
+.video-source-controls input[type=file] { font-size: 11px; }
+.camera-card.is-expanded .recognition-preview img { width: 110px; height: 60px; }
+.camera-card.is-expanded .recognition-preview small, .camera-card.is-expanded .recognition-item small { font-size: 12px; }
+.camera-source-note { color: #93c5fd; font-size: 10px; line-height: 1.3; overflow-wrap: anywhere; }
+.shared-camera-option { display: flex; align-items: center; gap: 6px; margin: 7px 0 3px; font-size: 11px; cursor: pointer; }
+.shared-camera-option input { width: 15px; height: 15px; flex: none; accent-color: var(--green); }
+.shared-camera-note { margin: 3px 0; font-size: 10px; }
+.visits-heading { font-size: 12px; margin: 8px 0 3px; }
+.camera-placeholder { padding: 8px 8px 34px; color: var(--muted); text-align: center; font-size: 11px; }
+.camera-expand { position: absolute; right: 5px; bottom: 5px; min-height: 28px; padding: 2px 7px; background: #142238e8; font-size: 15px; }
+.camera-expand span { font-size: 10px; vertical-align: middle; }
+.camera-meta { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 3px 6px; min-width: 0; }
+.camera-meta .badge { justify-self: start; max-width: 100%; white-space: normal; padding: 3px 5px; font-size: 9px; }
+.camera-meta strong { min-width: 0; overflow-wrap: anywhere; font-size: 11px; }
+.camera-meta small { grid-column: 1/-1; color: var(--muted); font-size: 10px; line-height: 1.3; overflow-wrap: anywhere; }
+.camera-arrival { display: block; padding: 5px 6px; border-radius: 4px; background: #17263a; color: #b9c9dc; font-size: 10px; overflow-wrap: anywhere; }
+.camera-arrival-active { border-color: #34d399; box-shadow: 0 0 0 1px #34d39955; }
+.camera-arrival-active .camera-arrival { background: #103b2c; color: #bbf7d0; font-weight: 800; }
+.camera-settings { margin-top: 6px; padding: 0 8px; background: #0c192a; border: 1px solid var(--line); border-radius: 5px; }
+.camera-config { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 4px 8px; padding: 5px 0 8px; }
+.camera-config label { grid-column: 1/-1; margin: 0; }
+.camera-config .button-row { margin: 0; }
+.camera-config button { font-size: 11px; }
+.camera-plate { color: #bbf7d0; font: 700 13px ui-monospace,Consolas,monospace; overflow-wrap: anywhere; padding: 3px 0; }
+.camera-card.is-expanded .camera-plate { font-size: 18px; }
+.camera-url-entry { display: flex; gap: 4px; min-width: 0; }
+.camera-url-entry input { flex: 1 1 0; min-width: 0; font-size: 11px; }
+.camera-url-entry button { flex: none; padding: 5px 8px; }
+.camera-config .button-row { gap: 4px; }
+.camera-config .button-row button { padding: 6px; }
+.camera-config-feedback { margin: 2px 0; font-size: 11px; overflow-wrap: anywhere; }
+.camera-config-feedback.config-error { color: #fca5a5; }
+.camera-settings > .note { margin: 2px 0 5px; font-size: 10px; overflow-wrap: anywhere; }
+.camera-video-options { margin-top: 6px; border-top: 1px solid var(--line); }
+.camera-video-options summary { white-space: normal; min-height: 28px; }
+#cameraMessage { overflow-wrap: anywhere; }
+.operations-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+.route-controls { min-width: 0; }
+.route-summary { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 1px 7px; align-items: center; margin: 5px 0; padding: 5px 8px; background: #0c192a; border-left: 3px solid #60a5fa; border-radius: 4px; }
+.route-summary strong { grid-row: span 2; color: #93c5fd; font-size: 16px; }
+.route-summary span { font-size: 12px; font-weight: 800; overflow-wrap: anywhere; }
+.route-summary small { color: var(--muted); font-size: 9px; }
+.auto-status { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.journey-status { display: flex; justify-content: space-between; align-items: center; gap: 5px 8px; flex-wrap: wrap; margin: 6px 0; padding: 6px 8px; background: #0c192a; border-left: 3px solid #60a5fa; border-radius: 4px; }
+.journey-status > strong { flex: 1 1 230px; min-width: 0; font-size: 11px; overflow-wrap: anywhere; }
+.signal-statuses { display: flex; flex-wrap: wrap; gap: 5px; }
+.operations-state { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); align-items: stretch; gap: 7px; }
+.metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; }
+.metric { display: flex; flex-direction: column; justify-content: center; padding: 5px 7px; background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; }
+.metric strong { font-size: 15px; overflow-wrap: anywhere; }
+.metric span { color: var(--muted); font-size: 10px; }
+.status-text { display: flex; align-items: center; margin: 0; padding: 5px 7px; background: #0c192a; border: 1px solid #2b405c; border-radius: 5px; font-size: 11px; overflow-wrap: anywhere; }
+.progress { height: 4px; background: #293b53; border-radius: 99px; overflow: hidden; margin: 6px 0; }
+.progress div { height: 100%; width: 0; background: linear-gradient(90deg,#22c55e,#86efac); transition: width .2s; }
+.operations-records { border-top: 1px solid var(--line); }
+.operations-records summary > .badge { margin-left: 8px; }
+.table-wrap { max-width: 100%; max-height: 150px; overflow: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 11px; }
+th, td { text-align: left; padding: 6px; border-bottom: 1px solid #2a3d58; vertical-align: top; }
+th { position: sticky; top: 0; color: #bfd3f0; background: var(--panel); }
+.table-note { color: var(--muted); }
+.warning { margin: 6px 0 0; padding: 8px; border-radius: 5px; background: #422329; border: 1px solid #7e333b; color: #fee2e2; font-size: 11px; }
+footer { width: 100%; max-width: 1920px; margin: auto; padding: 0 12px 5px; color: var(--muted); font-size: 10px; }
+/* Keep the original feed node in place: expanding a camera changes only its presentation. */
+body.camera-detail-open { overflow: hidden; }
+.camera-detail-backdrop { position: fixed; inset: 0; z-index: 100; background: #020812d9; }
+.camera-card.is-expanded { position: fixed; inset: clamp(8px,2vw,32px); z-index: 101; gap: 8px; padding: 12px; cursor: default; box-shadow: 0 20px 70px #0009; overflow: auto; }
+.camera-detail-tools { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 700; }
+.camera-close { min-height: 36px; }
+.camera-card.is-expanded .camera-card-head { font-size: 16px; }
+.camera-card.is-expanded .camera-card-head .badge { font-size: 11px; }
+.camera-card.is-expanded .camera-feed-wrap { flex: 1 1 0; min-height: 100px; aspect-ratio: auto; }
+.camera-card.is-expanded .camera-expand { display: none; }
+.camera-card.is-expanded .camera-placeholder { padding: 12px; font-size: 15px; }
+.camera-card.is-expanded .camera-meta { grid-template-columns: auto minmax(0,1fr); }
+.camera-card.is-expanded .camera-meta strong { font-size: 18px; }
+.camera-card.is-expanded .camera-meta small, .camera-card.is-expanded .camera-meta .badge { font-size: 12px; }
+/* Desktop panels share the available height; expanded ancillary information scrolls locally. */
+@media (min-width: 1101px) and (min-height: 650px) {
+  body { height: 100dvh; display: flex; flex-direction: column; }
+  .app-header, footer { flex: none; }
+  main { flex: 1 1 0; min-height: 0; grid-template-rows: minmax(0,1fr); align-items: stretch; margin: 0 auto; }
+  .panel { min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #405777 #0c192a; }
+  .map-panel { display: flex; flex-direction: column; }
+  .map-panel .section-title, .map-panel > .note { flex: none; }
+  .map-panel .map { flex: 1 1 0; min-height: 90px; }
+}
+@media (min-width: 1700px) {
+  main { grid-template-columns: minmax(0,1fr) minmax(0,min(42vw,780px)); }
+  .camera-panel { align-self: start; max-height: 100%; }
+}
+@media (max-width: 1100px) {
+  main { grid-template-columns: minmax(0,1fr); grid-template-areas: 'map' 'cameras'; }
+  .map { max-height: 42vh; }
+}
+@media (max-width: 600px) {
+  .app-header { flex-wrap: wrap; padding: 8px 10px; }
+  h1 { font-size: 18px; }
+  main { padding: 8px; gap: 8px; }
+  .section-title h2 { font-size: 15px; }
+  .operations-grid, .operations-state, .camera-config { grid-template-columns: minmax(0,1fr); }
+  .camera-config label { grid-column: 1; }
+  .map-status { justify-content: flex-start; }
+  .camera-card.is-expanded { padding: 8px; }
+  .camera-card.is-expanded .camera-meta { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 560px) {
+  .camera-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vehicle, .plate-marker, .progress div { transition: none; }
+}

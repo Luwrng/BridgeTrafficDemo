@@ -1,0 +1,7 @@
+{
+  "backend": "sqlserver",
+  "server": ".\\SQLEXPRESS",
+  "database": "QuanLyXe",
+  "driver": "ODBC Driver 18 for SQL Server",
+  "trustServerCertificate": true
+}
