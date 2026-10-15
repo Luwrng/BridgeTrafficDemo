@@ -61,7 +61,7 @@ try {
             if ($taskService.storage.backend -ne $taskExpectedStorage.backend) { $taskStorageReady = $false }
             if ($taskExpectedStorage.backend -eq 'sqlserver' -and ($taskService.storage.database -ne $taskExpectedStorage.database -or $taskService.storage.server -ne $taskExpectedStorage.server)) { $taskStorageReady = $false }
         }
-        if ($taskStorageReady -and $taskCamera.available -and $taskOcr.available -and $taskOcr.recordingVersion -ge 2 -and $taskRecords.available -and $taskRecords.schemaVersion -ge 6) { $taskReady = $true; break }
+        if ($taskStorageReady -and $taskCamera.available -and $taskOcr.available -and $taskOcr.recordingVersion -ge 2 -and $taskRecords.available -and $taskRecords.schemaVersion -ge 7) { $taskReady = $true; break }
         Start-Sleep -Milliseconds 250
     }
     if (-not $taskReady) { throw 'Camera/OCR/hồ sơ chưa sẵn sàng hoặc đang chạy phiên bản cũ. Xem log trong Data/service-logs.' }

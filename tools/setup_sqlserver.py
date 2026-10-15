@@ -19,7 +19,7 @@ from record_storage import CONFIG_PATH
 from sqlserver_store import open_connection, SqlConnection, SqlServerVisitStore
 from vehicle_records import ROOT, DEFAULT_DATA_DIR, utc_time
 
-TABLES = ('visits','passages','gate_state','plate_release','visit_corrections')
+TABLES = ('visits','passages','gate_state','plate_release','visit_corrections','record_changes','visit_attachments')
 TIME_COLUMNS = {'entered_at','exited_at','created_at','deleted_at','occurred_at','confirmed_at','last_seen_at'}
 
 
@@ -38,6 +38,7 @@ def ensure_database(settings):
             raise RuntimeError('Database còn tên tiếng Anh; chạy tools/localize_sqlserver.py trước, không tạo bảng trùng.')
         conn.execute('BEGIN IMMEDIATE')
         conn.execute((ROOT / 'tools' / 'sqlserver_schema.sql').read_text(encoding='utf-8'))
+        conn.execute((ROOT / 'tools' / 'sqlserver_management_v7.sql').read_text(encoding='utf-8'))
         conn.finish(False)
     except BaseException:
         conn.finish(True)
@@ -51,7 +52,12 @@ def normalize(row):
 
 def snapshot_sqlite(path):
     raw = sqlite3.connect(path); raw.row_factory = sqlite3.Row
-    try: return {table:[normalize(row) for row in raw.execute(f'SELECT * FROM {table}')] for table in TABLES}
+    try:
+        tables = {row[0] for row in raw.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        result = {table:[normalize(row) for row in raw.execute(f'SELECT * FROM {table}')] if table in tables else [] for table in TABLES}
+        for row in result['visits']:
+            for column,value in [('notes',''),('review_note',''),('origin','camera'),('edit_version',0)]: row.setdefault(column,value)
+        return result
     finally: raw.close()
 
 
@@ -91,6 +97,14 @@ def migrate(settings, data_dir=DEFAULT_DATA_DIR, backup_root=None):
                 if hashlib.sha256(saved.read_bytes()).hexdigest() != passage[checksum]:
                     raise RuntimeError('Ảnh backup chưa khớp; không kích hoạt SQL Server.')
                 copied.add(name)
+    for attachment in tables['visit_attachments']:
+        name = attachment['file_name']
+        if not re.fullmatch(r'[0-9a-f]{32}_upload\.(jpg|png|webp)',name): raise RuntimeError('Tên ảnh bổ sung không hợp lệ.')
+        source_image = data_dir/'evidence'/name
+        if hashlib.sha256(source_image.read_bytes()).hexdigest()!=attachment['sha256']: raise RuntimeError('Ảnh bổ sung nguồn thiếu/sai mã kiểm tra.')
+        shutil.copy2(source_image,backup/'evidence'/name)
+        if hashlib.sha256((backup/'evidence'/name).read_bytes()).hexdigest()!=attachment['sha256']: raise RuntimeError('Ảnh bổ sung backup không khớp.')
+        copied.add(name)
     store = SqlServerVisitStore(settings,data_dir)
     with store.connection() as conn:
         conn.execute('BEGIN IMMEDIATE')

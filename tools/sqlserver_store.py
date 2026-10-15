@@ -139,8 +139,8 @@ class SqlServerVisitStore(VisitStore):
         if verify:
             with self.connection() as conn:
                 conn.execute('BEGIN')
-                if conn.execute('SELECT MAX(version) FROM dbo.schema_migrations').fetchone()[0] != 6:
-                    raise RuntimeError('Database chưa đúng phiên bản cấu trúc 6 (tiếng Việt).')
+                if conn.execute('SELECT MAX(version) FROM dbo.schema_migrations').fetchone()[0] != 7:
+                    raise RuntimeError('Database cần nâng cấp cấu trúc hồ sơ 7 bằng tools/upgrade_records_v7.py.')
 
     @contextmanager
     def connection(self):

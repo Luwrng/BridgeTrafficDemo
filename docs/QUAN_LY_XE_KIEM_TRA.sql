@@ -11,12 +11,14 @@ UNION ALL SELECT N'TrangThaiKhuD', COUNT(*) FROM dbo.TrangThaiKhuD
 UNION ALL SELECT N'ChongGhiTrungBienSo', COUNT(*) FROM dbo.ChongGhiTrungBienSo
 UNION ALL SELECT N'DieuChinhLuotXe', COUNT(*) FROM dbo.DieuChinhLuotXe
 UNION ALL SELECT N'PhienBanCauTruc', COUNT(*) FROM dbo.PhienBanCauTruc
-UNION ALL SELECT N'NhatKyChuyenDuLieu', COUNT(*) FROM dbo.NhatKyChuyenDuLieu;
+UNION ALL SELECT N'NhatKyChuyenDuLieu', COUNT(*) FROM dbo.NhatKyChuyenDuLieu
+UNION ALL SELECT N'NhatKySuaHoSo', COUNT(*) FROM dbo.NhatKySuaHoSo
+UNION ALL SELECT N'AnhBoSungHoSo', COUNT(*) FROM dbo.AnhBoSungHoSo;
 GO
 SELECT TOP(50) BienSo, CongVao,
     SWITCHOFFSET(ThoiGianVao,'+07:00') AS NgayGioVao,
     CongRa, SWITCHOFFSET(ThoiGianRa,'+07:00') AS NgayGioRa,
-    TrangThai, ThoiGianXoa, GhiChu
+    TrangThai, ThoiGianXoa, GhiChu, GhiChuBoSung, LyDoCanKiemTra, NguonTao, PhienBanChinhSua
 FROM dbo.LuotXeRaVao
 ORDER BY COALESCE(ThoiGianRa,ThoiGianVao,ThoiGianTao) DESC;
 GO
@@ -27,6 +29,8 @@ FROM dbo.LanGhiNhanCamera ORDER BY ThoiGianGhiNhan DESC;
 GO
 SELECT * FROM dbo.TrangThaiKhuD;
 SELECT * FROM dbo.DieuChinhLuotXe ORDER BY ThoiGianXacNhan DESC;
+SELECT * FROM dbo.NhatKySuaHoSo ORDER BY ThoiGianTao DESC;
+SELECT * FROM dbo.AnhBoSungHoSo ORDER BY ThoiGianTao DESC;
 SELECT * FROM dbo.PhienBanCauTruc;
 SELECT * FROM dbo.NhatKyChuyenDuLieu ORDER BY ThoiGianHoanThanh DESC;
 SELECT name AS TenTep, type_desc AS LoaiTep, physical_name AS DuongDan FROM sys.database_files;

@@ -5,12 +5,13 @@ Chỉ dịch identifier SQL. Giá trị, mã trạng thái, chuỗi literal và 
 """
 import re
 
-TABLES = {
+TABLES_V6 = {
     'visits': 'LuotXeRaVao', 'passages': 'LanGhiNhanCamera',
     'gate_state': 'TrangThaiKhuD', 'plate_release': 'ChongGhiTrungBienSo',
     'visit_corrections': 'DieuChinhLuotXe', 'schema_migrations': 'PhienBanCauTruc',
     'migration_runs': 'NhatKyChuyenDuLieu',
 }
+TABLES = {**TABLES_V6, 'record_changes':'NhatKySuaHoSo', 'visit_attachments':'AnhBoSungHoSo'}
 COLUMNS = {
     'id': 'Ma', 'realm': 'LoaiDuLieu', 'plate': 'BienSo',
     'entered_at': 'ThoiGianVao', 'exited_at': 'ThoiGianRa',
@@ -26,6 +27,9 @@ COLUMNS = {
     'version': 'PhienBan', 'installed_at': 'ThoiGianCaiDat',
     'source_sha256': 'MaKiemTraNguon', 'backup_path': 'DuongDanSaoLuu',
     'counts_json': 'ThongKeSoDong', 'completed_at': 'ThoiGianHoanThanh',
+    'notes':'GhiChuBoSung', 'review_note':'LyDoCanKiemTra', 'origin':'NguonTao',
+    'edit_version':'PhienBanChinhSua', 'before_json':'DuLieuTruocSua',
+    'after_json':'DuLieuSauSua', 'file_name':'TenTepAnh', 'sha256':'MaKiemTraAnh',
 }
 _REVERSE_COLUMNS = {value.lower(): key for key, value in COLUMNS.items()}
 _IDENTIFIERS = {**TABLES, **COLUMNS}

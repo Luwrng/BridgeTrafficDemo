@@ -38,8 +38,8 @@ class FixtureHandler(RecordHandler):
             # Hai module chỉ đọc DB tạm cùng origin. Mã nguồn ứng dụng không đổi.
             text = text.replace("http://127.0.0.1:5085", "")
             if path.suffix == ".html":
-                text = text.replace("<h1>Quản lý xe ra vào</h1>", "<h1>KIỂM THỬ CÁCH LY</h1>")
-                text = text.replace("Giám sát camera · Hồ sơ và bằng chứng", "Sự kiện kiểm thử · DB tạm · không ghi hồ sơ ứng dụng")
+                text = text.replace("<h1>Camera giám sát</h1>", "<h1>KIỂM THỬ CÁCH LY</h1>")
+                text = text.replace("Theo dõi camera · Sơ đồ vùng D", "Sự kiện kiểm thử · DB tạm · không ghi hồ sơ ứng dụng")
             data = text.encode("utf-8")
         self.send_response(200)
         self.headers_for(mimetypes.guess_type(path.name)[0] or "application/octet-stream", len(data))

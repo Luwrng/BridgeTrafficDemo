@@ -37,19 +37,17 @@
     });
   }
   openButton.addEventListener("click", () => {
-    if (dialog.open) return;
-    dialog.showModal(); document.body.classList.add("settings-open");
+    window.FunctionDrawer.open('cameraSettingsDialog');
+    if (!dialog.open) dialog.show();
     selectCamera(selectedCamera, true);
     window.dispatchEvent(new Event("camera-settings-open"));
   });
   document.getElementById("closeSettingsBtn").addEventListener("click", () => dialog.close());
   dialog.addEventListener("close", () => {
-    document.body.classList.remove("settings-open");
     for (const tab of tabs) {
       maskLink(tab.dataset.camera);
       document.getElementById(tab.getAttribute("aria-controls")).querySelector(".camera-settings").open = false;
     }
-    openButton.focus({ preventScroll: true });
   });
   selectCamera(selectedCamera);
 })();

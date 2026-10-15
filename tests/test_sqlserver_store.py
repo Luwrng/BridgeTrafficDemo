@@ -48,7 +48,7 @@ class SqlServerTests(unittest.TestCase):
         with self.store.connection() as conn:
             conn.execute('BEGIN IMMEDIATE')
             conn.execute('DROP TRIGGER IF EXISTS dbo.fail_passage')
-            for table in ['visit_corrections','passages','visits','plate_release','migration_runs']:
+            for table in ['record_changes','visit_attachments','visit_corrections','passages','visits','plate_release','migration_runs']:
                 conn.execute(f'DELETE FROM {table}')
             conn.execute('UPDATE gate_state SET revision=0 WHERE id=1')
         self.scene = (ROOT/'artifacts/ui-check/camera-live.jpg').read_bytes()

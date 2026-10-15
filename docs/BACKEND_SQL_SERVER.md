@@ -2,7 +2,8 @@
 
 ASP.NET Core phục vụ HTML/CSS/JS tại 5080 và khởi động worker. Python broker
 5083 giữ bốn RTSP riêng trong RAM; Python OCR 5084 chạy YOLO → PaddleOCR rồi
-ghi hồ sơ. Python API 5085 đọc hồ sơ/ảnh và nhận xóa, khôi phục, xác nhận ra.
+ghi hồ sơ. Python API 5085 đọc/lọc hồ sơ/ảnh, nhập/sửa có audit, đính kèm ảnh,
+xóa có khôi phục và xác nhận ra thủ công.
 
 ```mermaid
 flowchart LR
@@ -27,6 +28,9 @@ flowchart LR
 - `tools/sqlserver_vietnamese.py`: ánh xạ tên SQL, giữ nguyên API và giá trị.
 - `tools/localize_sqlserver.py`: nâng cấp tên trực tiếp từ cấu trúc 5 sang 6,
   backup và đối chiếu trước khi hoàn tất, rollback toàn bộ nếu lỗi.
+- `tools/sqlserver_management_v7.sql`, `tools/upgrade_records_v7.py`: cấu trúc
+  7 cho ghi chú, đánh dấu kiểm tra, phiên bản sửa, lịch sử sửa và ảnh bổ sung;
+  backup/đối chiếu trước nâng cấp. `setup_sqlserver.py` tạo mới đến cấu trúc 7.
 - `tools/setup_sqlserver.py`: tạo DB, backup, chuyển dữ liệu và đối chiếu.
 - `Data/database.json`: cấu hình đang dùng. Không có mật khẩu; không lưu RTSP.
 
@@ -41,6 +45,8 @@ flowchart LR
 | dbo.DieuChinhLuotXe | Xác nhận thủ công: cổng, giờ, lý do, lúc xác nhận |
 | dbo.PhienBanCauTruc | Phiên bản cấu trúc database |
 | dbo.NhatKyChuyenDuLieu | Nhật ký chuyển dữ liệu và đường dẫn backup |
+| dbo.NhatKySuaHoSo | Lý do nhập/sửa, dữ liệu trước/sau, thời điểm |
+| dbo.AnhBoSungHoSo | Ảnh do người vận hành đính kèm, vai trò vào/ra, SHA-256 |
 
 ID và liên kết hồ sơ được giữ nguyên. Giờ lưu `datetimeoffset(3)` UTC,
 API trả ISO-8601 như trước; web hiển thị UTC+7. Nội dung tiếng Việt dùng

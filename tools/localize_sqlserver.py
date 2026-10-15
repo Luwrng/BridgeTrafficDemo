@@ -16,7 +16,7 @@ import uuid
 
 from record_storage import read_settings
 from sqlserver_store import open_connection, SqlConnection, SqlCursor
-from sqlserver_vietnamese import TABLES, COLUMNS
+from sqlserver_vietnamese import TABLES_V6 as TABLES, COLUMNS
 from vehicle_records import ROOT, DEFAULT_DATA_DIR
 
 
@@ -118,14 +118,15 @@ def rename_schema(raw, before=None):
     return after
 
 
-def _backup(raw, settings, backup, before, data_dir):
+def _backup(raw, settings, backup, before, data_dir, purpose='TruocVietHoa'):
     database = settings['database']
     if not re.fullmatch('[A-Za-z0-9_]{1,100}', database): raise ValueError('Tên DB không hợp lệ.')
     # Dùng thư mục backup mặc định của SQL Server mà tài khoản dịch vụ có quyền ghi.
     # Không cấp thêm quyền Windows hoặc ghi đè một file backup đã có.
     directory = raw.execute("SELECT CONVERT(nvarchar(4000),SERVERPROPERTY('InstanceDefaultBackupPath'))").fetchone()[0]
     if not directory: raise RuntimeError('Không xác định được thư mục backup mặc định của SQL Server.')
-    native = str(Path(directory) / (database + '_TruocVietHoa_' + backup.name + '.bak'))
+    if not re.fullmatch('[A-Za-z0-9_]+',purpose): raise ValueError('Tên backup không hợp lệ.')
+    native = str(Path(directory) / (database + '_' + purpose + '_' + backup.name + '.bak'))
     raw.timeout = 120
     cursor = raw.execute(f'BACKUP DATABASE [{database}] TO DISK=? WITH COPY_ONLY,CHECKSUM', native)
     while cursor.nextset(): pass
@@ -156,7 +157,7 @@ def localize(settings, data_dir=DEFAULT_DATA_DIR, backup_root=None):
     conn = SqlConnection(raw)
     try:
         if raw.execute("SELECT OBJECT_ID(N'dbo.LuotXeRaVao',N'U')").fetchone()[0] is not None:
-            if raw.execute('SELECT MAX(PhienBan) FROM dbo.PhienBanCauTruc').fetchone()[0] != 6:
+            if raw.execute('SELECT MAX(PhienBan) FROM dbo.PhienBanCauTruc').fetchone()[0] not in (6,7):
                 raise RuntimeError('Tên đích đã tồn tại nhưng cấu trúc chưa đúng 6.')
             return {'ketQua': 'da-viet-hoa', 'database': settings['database']}
         before = snapshot(raw)

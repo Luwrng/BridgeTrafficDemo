@@ -1,5 +1,8 @@
 # Hồ sơ xe vào–ra — đợt 1, cập nhật ngày 14/10/2026
 
+> Tài liệu giai đoạn đầu. Các mục nhập/sửa, bộ lọc, báo cáo thiếu dữ liệu và
+> bảng chức năng bên cạnh camera được cập nhật tại [mục 5–9](HO_SO_XE_MUC_5_DEN_9.md).
+
 Yêu cầu mới thay thế hai mục tách dữ liệu thử và cấu hình hướng: bỏ các chế
 độ này khỏi giao diện. Xe vào–ra và D được xác định bằng biển số giữa các
 camera. Giữ lưu ngày giờ, ảnh bằng chứng và nguồn RTSP riêng A/B/C/E.

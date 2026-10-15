@@ -16,6 +16,7 @@ from sqlserver_vietnamese import TABLES, COLUMNS, translate_sql
 from sqlserver_store import SqlServerVisitStore, SqlConnection, open_connection
 from setup_sqlserver import snapshot_sqlite, ensure_database
 from localize_sqlserver import snapshot, rename_schema, localize, _rename
+from upgrade_records_v7 import upgrade
 from vehicle_records import VisitStore
 
 
@@ -76,15 +77,19 @@ class VietnameseUpgradeTests(unittest.TestCase):
         raw = open_connection(self.settings)
         try:
             for table, rows in snapshot_sqlite(source.database).items():
+                if table in ('record_changes','visit_attachments'): continue
                 for row in rows:
                     if table == 'gate_state':
                         raw.execute('UPDATE gate_state SET revision=? WHERE id=1',row['revision']); continue
+                    old_columns={r[0] for r in raw.execute('SELECT name FROM sys.columns WHERE object_id=OBJECT_ID(?)','dbo.'+table)}
+                    row={k:v for k,v in row.items() if k in old_columns}
                     raw.execute(f"INSERT INTO {table} ({','.join(row)}) VALUES ({','.join('?' for _ in row)})", tuple(row.values()))
             raw.execute('INSERT INTO migration_runs(id,source_sha256,backup_path,counts_json) VALUES(?,?,?,?)',
                         uuid.uuid4().hex,'a'*64,self.temp.name,json.dumps({'visits':3,'passages':3}))
         finally: raw.close()
         self.expected_occupancy = source.occupancy()
         self.expected_visit = source.detail(first)
+        self.expected_visit['edit_version'] = 0  # Cấu trúc 5 chưa có bộ đếm chỉnh sửa.
 
     def drop_test_database(self):
         if not re.fullmatch('QuanLyXe_Test_[0-9a-f]{32}',self.database): raise RuntimeError('Sai tên DB kiểm thử.')
@@ -99,6 +104,9 @@ class VietnameseUpgradeTests(unittest.TestCase):
         native = Path(report['tepSaoLuuSQLServer'])
         self.assertEqual(report['soAnhDaKiemTra'],6)
         self.assertTrue(native.name.startswith(self.database+'_TruocVietHoa_'))
+        upgraded=upgrade(self.settings,self.temp.name,Path(self.temp.name)/'upgrade')
+        self.assertTrue(upgraded['daDoiChieuDuLieuCu'])
+        self.assertEqual(upgrade(self.settings,self.temp.name)['ketQua'],'da-nang-cap')
         store = SqlServerVisitStore(self.settings,self.temp.name)
         self.assertEqual(store.occupancy(),self.expected_occupancy)
         self.assertEqual(store.detail(self.expected_visit['id']),self.expected_visit)
@@ -116,7 +124,7 @@ class VietnameseUpgradeTests(unittest.TestCase):
             self.assertEqual(tables,set(TABLES.values()))
             self.assertEqual(raw.execute("SELECT TrangThai FROM dbo.LuotXeRaVao WHERE Ma=?",self.expected_visit['id']).fetchone()[0],'COMPLETE')
             self.assertEqual(tuple(raw.execute('SELECT ThaoTac,LyDo FROM dbo.DieuChinhLuotXe').fetchone()),('confirm-exit','INSIDE'))
-            self.assertEqual(raw.execute('SELECT COUNT(*) FROM dbo.PhienBanCauTruc').fetchone()[0],2)
+            self.assertEqual(raw.execute('SELECT COUNT(*) FROM dbo.PhienBanCauTruc').fetchone()[0],3)
             columns = {r[0] for r in raw.execute('SELECT name FROM sys.columns WHERE object_id IN (SELECT object_id FROM sys.tables)')}
             self.assertFalse(columns & set(COLUMNS))
             names = [r[0] for r in raw.execute("SELECT name FROM sys.objects WHERE type IN ('PK','F','UQ','D','C') AND parent_object_id IN (SELECT object_id FROM sys.tables)")]

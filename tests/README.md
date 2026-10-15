@@ -10,7 +10,7 @@ Sau khi cài phụ thuộc theo README, có thể chạy các bài không cần 
 python -m unittest discover -s tests -p test_plate_tracking.py
 python -m unittest discover -s tests -p test_camera_sources.py
 python -m unittest discover -s tests -p test_sqlserver_vietnamese.py -k VietnameseMappingTests
-node --test tests/camera-polling.test.cjs tests/service-polling.test.cjs
+node --test tests/camera-polling.test.cjs tests/service-polling.test.cjs tests/record-editor-time.test.cjs
 ```
 
 Bộ đầy đủ trong README cần fixture riêng `camera-live.jpg`, `plate-crop.jpg`
@@ -24,3 +24,8 @@ kiểm thử không mở database đang vận hành. SQL integration còn cần
 đúng database `QuanLyXe_Test_<UUID>`, không ghi vào `QuanLyXe`.
 Backup SQL của bài nâng cấp nằm trong thư mục backup mặc định của SQL Server,
 mang tên database kiểm thử để phân biệt với backup dữ liệu thật.
+
+`test_record_management.py` kiểm tra nhập/sửa, ảnh bổ sung và rollback,
+lọc UTC+7, danh sách xe chưa ra, cờ cần kiểm tra và xung đột khi camera cập
+nhật lúc đang sửa. Giao diện thử ở 5086 dùng DB tạm và nhãn cách ly; không
+đưa kết quả thử vào `QuanLyXe`.

@@ -99,6 +99,13 @@ Không cần chọn hướng camera hoặc loại dữ liệu. Các nút/kịch 
 sử OCR từng camera đã bỏ. **Hồ sơ vào–ra** là nơi xem lịch sử tổng và ảnh gốc.
 Giao diện chỉ có trắng/đen, chuyển bằng một click, bốn camera nằm trong lưới.
 
+Màn hình mang tên **Camera giám sát**. Nhấn **☰** để mở bảng chức năng bên
+phải và thao tác Hồ sơ, Xe đang bên trong, Hồ sơ cần kiểm tra, Nhập lượt xe
+hoặc Cài đặt ngay cạnh sơ đồ/bốn camera. Không chuyển trang; nút đổi nền
+nằm cạnh ☰. Có tìm kiếm/lọc theo biển số, ngày/tháng,
+khoảng giờ, cổng, trạng thái; nhập/sửa ghi chú và ảnh có lịch sử trước/sau.
+Xem [hướng dẫn mục 5–9](docs/HO_SO_XE_MUC_5_DEN_9.md).
+
 **Xóa hồ sơ:** mở Hồ sơ vào–ra, bấm **Xóa** ở dòng xe, xác nhận **Xóa hồ sơ**.
 Lấy lại tại **Thùng rác → Khôi phục**; ảnh và ngày giờ/cổng giữ nguyên.
 Xóa không coi xe đã ra: lượt INSIDE vẫn giữ D/đèn đỏ đến khi camera khác
@@ -154,11 +161,11 @@ Thông tin mô hình: `Models/license-plate-yolov8n.NOTICE.txt` và
 $env:CAMERA_RECORDS_BACKEND='sqlite'
 $env:CAMERA_SQLSERVER_TESTS='1'
 python -m unittest discover -s tests -p 'test_*.py' -v
-node --test tests/camera-polling.test.cjs tests/service-polling.test.cjs
+node --test tests/camera-polling.test.cjs tests/service-polling.test.cjs tests/record-editor-time.test.cjs
 Remove-Item Env:CAMERA_RECORDS_BACKEND, Env:CAMERA_SQLSERVER_TESTS
 ```
 
 Kiểm thử lưu hồ sơ dùng DB/thư mục tạm, không thêm lượt thử vào dữ liệu
 ứng dụng. SQL integration tạo và dọn DB riêng `QuanLyXe_Test_<UUID>`.
-Ảnh kiểm thử là ảnh camera thật đã chụp. Chưa triển khai nhập tay lượt vào,
-tìm kiếm/lọc hoặc các màn hình của hai đợt tiếp theo.
+Ảnh kiểm thử là ảnh camera thật đã chụp. Nhập/sửa, ảnh bổ sung, danh sách xe
+bên trong, bộ lọc và báo cáo thiếu dữ liệu đã có kiểm tra riêng.

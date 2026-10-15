@@ -10,6 +10,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import uuid
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from unittest.mock import patch
@@ -366,6 +367,35 @@ class HTTPTests(RecordFixture):
         self.assertEqual(error.exception.code,404)
         with self.assertRaises(HTTPError) as error: urlopen(self.base+"/api/visits?deleted=anything")
         self.assertEqual(error.exception.code,400)
+
+    def test_http_manual_create_edit_attachment_and_search(self):
+        payload=dict(confirm=True,request_id=uuid.uuid4().hex,plate='51K12345',entry_camera='A',exit_camera='B',
+                     entered_at='2026-10-13T02:00:00Z',exited_at='2026-10-13T03:00:00Z',
+                     notes='Bổ sung theo sổ',review_note='',reason='Đối chiếu sổ bảo vệ',
+                     attachments=[dict(data=base64.b64encode(self.scene).decode(),direction='entry')])
+        def post(path,body,origin='http://127.0.0.1:5080'):
+            return urlopen(Request(self.base+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json','Origin':origin}))
+        with self.assertRaises(HTTPError) as error: post('/api/visits/manual',payload,'http://example.invalid')
+        self.assertEqual(error.exception.code,403)
+        with post('/api/visits/manual',payload) as response: identifier=json.load(response)['visitIds'][0]
+        visit=self.store.detail(identifier)
+        with urlopen(self.base+'/evidence/'+visit['attachments'][0]['file_name']) as response:
+            self.assertEqual(response.headers['Content-Type'],'image/jpeg'); self.assertEqual(response.read(),self.scene)
+        payload.update(expected_version=visit['edit_version'],plate='51K54321',attachments=[])
+        with post('/api/visits/'+identifier+'/edit',payload) as response: self.assertEqual(json.load(response)['state'],'manual-edited')
+        with self.assertRaises(HTTPError) as error: post('/api/visits/'+identifier+'/edit',payload)
+        self.assertEqual(error.exception.code,409)
+        with urlopen(self.base+'/api/visits?plate=543&gate=B&month=2026-10&review=1') as response:
+            self.assertEqual(json.load(response)['total'],1)  # Chưa bổ sung ảnh ra.
+        with urlopen(self.base+'/api/inside') as response: self.assertEqual(json.load(response)['total'],0)
+
+    def test_http_new_manual_endpoint_requires_confirmation_and_valid_filter(self):
+        with self.assertRaises(HTTPError) as error:
+            urlopen(Request(self.base+'/api/visits/manual',data=b'{}',headers={'Content-Type':'application/json'}))
+        self.assertEqual(error.exception.code,400)
+        for query in ('plate=x%25','month=2026-13','status=anything','gate=A&gate=B'):
+            with self.assertRaises(HTTPError) as error: urlopen(self.base+'/api/visits?'+query)
+            self.assertEqual(error.exception.code,400)
 
 
 class ExclusiveServerTests(unittest.TestCase):

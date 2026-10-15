@@ -15,6 +15,7 @@ import re
 import sqlite3
 import threading
 import uuid
+from record_management import RecordManagementMixin
 
 CAMERAS = ("A", "B", "C", "E")
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +30,7 @@ def utc_time(value):
     return date.astimezone(timezone.utc).isoformat(timespec="milliseconds")
 
 
-class VisitStore:
+class VisitStore(RecordManagementMixin):
     """Một transaction xử lý nhận diện, cập nhật D và ghi hai ảnh bằng chứng."""
     def __init__(self, data_dir=DEFAULT_DATA_DIR):
         self.root = Path(data_dir).resolve()
@@ -75,6 +76,7 @@ class VisitStore:
                 # Xóa có khôi phục: ảnh và lượt vẫn tồn tại để không mất bằng
                 # chứng hay nhầm rằng xe chưa ra đã rời vùng D.
                 conn.execute("ALTER TABLE visits ADD COLUMN deleted_at TEXT")
+            self._management_columns(conn)
 
     @contextmanager
     def connection(self):
@@ -188,12 +190,12 @@ class VisitStore:
                         created_files.append(target)
                         stream.write(image); stream.flush(); os.fsync(stream.fileno())
                 if action == "exit":
-                    conn.execute("UPDATE visits SET exited_at=?,exit_camera=?,status='COMPLETE' WHERE id=?", (at, camera, visit_id))
+                    conn.execute("UPDATE visits SET exited_at=?,exit_camera=?,status='COMPLETE',edit_version=edit_version+1 WHERE id=?", (at, camera, visit_id))
                     conn.execute("INSERT OR REPLACE INTO plate_release VALUES (?,?)", (plate, at))
                 elif action == "entry" and waiting:
                     # Đây là sự kiện vào mới sau khi D trống; đưa lượt chờ đã
                     # bị ẩn trở lại danh sách để không mất lượt đang trong D.
-                    conn.execute("UPDATE visits SET entered_at=?,entry_camera=?,entry_source=?,status='INSIDE',issue=NULL,deleted_at=NULL WHERE id=?", (at, camera, source_id, visit_id))
+                    conn.execute("UPDATE visits SET entered_at=?,entry_camera=?,entry_source=?,status='INSIDE',issue=NULL,deleted_at=NULL,edit_version=edit_version+1 WHERE id=?", (at, camera, source_id, visit_id))
                 else:
                     conn.execute("""INSERT INTO visits(id,realm,plate,entered_at,entry_camera,status,issue,created_at,entry_source)
                                     VALUES (?,'real',?,?,?,?,?,?,?)""",
@@ -233,7 +235,7 @@ class VisitStore:
             confirmed_at = now.isoformat(timespec='milliseconds')
             conn.execute("INSERT INTO visit_corrections VALUES (?,?,?,?,?,?,?)",
                          (uuid.uuid4().hex, visit_id, 'confirm-exit', camera, at, confirmed_at, reason))
-            conn.execute("UPDATE visits SET exited_at=?,exit_camera=?,status='COMPLETE',issue=? WHERE id=?",
+            conn.execute("UPDATE visits SET exited_at=?,exit_camera=?,status='COMPLETE',issue=?,edit_version=edit_version+1 WHERE id=?",
                          (at, camera, 'Xe ra được xác nhận thủ công; không có ảnh camera ra.', visit_id))
             # Chống OCR còn trong khung tái tạo lượt ngay sau thao tác xác nhận.
             conn.execute("INSERT OR REPLACE INTO plate_release VALUES (?,?)", (row['plate'], confirmed_at))
@@ -254,38 +256,25 @@ class VisitStore:
                 return None
             if bool(row["deleted_at"]) != deleted:
                 at = datetime.now(timezone.utc).isoformat(timespec="milliseconds") if deleted else None
-                conn.execute("UPDATE visits SET deleted_at=? WHERE id=?", (at, visit_id))
+                conn.execute("UPDATE visits SET deleted_at=?,edit_version=edit_version+1 WHERE id=?", (at, visit_id))
                 # Revision đổi để phản hồi cũ không ghi đè thông báo D vừa nhận.
                 conn.execute("UPDATE gate_state SET revision=revision+1 WHERE id=1")
             return {"state": "trashed" if deleted else "restored", "id": visit_id,
                     "visitIds": [], "occupancy": self._occupancy(conn)}
 
-    def list_visits(self, offset=0, limit=30, deleted=False):
-        if offset < 0 or not 1 <= limit <= 100:
-            raise ValueError("Tham số hồ sơ không hợp lệ.")
-        with self.connection() as conn:
-            conn.execute("BEGIN")
-            condition = "deleted_at IS NOT NULL" if deleted else "deleted_at IS NULL"
-            total = conn.execute(f"SELECT COUNT(*) FROM visits WHERE realm='real' AND {condition}").fetchone()[0]
-            rows = [dict(row) for row in conn.execute(f"SELECT * FROM visits WHERE realm='real' AND {condition} ORDER BY CASE WHEN status='INSIDE' THEN 0 ELSE 1 END,COALESCE(exited_at,entered_at,created_at) DESC,id DESC LIMIT ? OFFSET ?", (limit, offset))]
-            for row in rows:
-                row.pop("realm", None); row.pop("entry_source", None)
-                row["evidence_count"] = conn.execute("SELECT COUNT(*) FROM passages WHERE visit_id=?", (row["id"],)).fetchone()[0]
-            # Cùng snapshot SQLite với bảng hồ sơ, kể cả xe nằm trong Thùng rác.
-            occupancy = self._occupancy(conn)
-            counts = dict(conn.execute("SELECT status,COUNT(*) FROM visits WHERE realm='real' AND deleted_at IS NULL GROUP BY status").fetchall())
-        return {"items": rows, "total": total, "offset": offset, "limit": limit, "deleted": deleted,
-                "occupancy": occupancy, "counts": counts, "storage":self.storage_info()}
+    def list_visits(self, offset=0, limit=30, deleted=False, filters=None):
+        return self.management_list(offset,limit,deleted,filters)
 
     def detail(self, visit_id):
         with self.connection() as conn:
+            conn.execute('BEGIN')
             row = conn.execute("SELECT * FROM visits WHERE id=? AND realm='real'", (visit_id,)).fetchone()
             if not row:
                 return None
             visit = dict(row); visit.pop("realm", None); visit.pop("entry_source", None)
             visit["passages"] = [dict(item) for item in conn.execute("SELECT * FROM passages WHERE visit_id=? ORDER BY occurred_at", (visit_id,))]
             visit["corrections"] = [dict(item) for item in conn.execute("SELECT * FROM visit_corrections WHERE visit_id=? ORDER BY confirmed_at", (visit_id,))]
-            return visit
+            return self._management_detail(conn,visit)
 
     def evidence(self, filename):
         """Chỉ đọc tên ảnh có trong hồ sơ thật, chặn đường dẫn tùy ý."""
@@ -293,6 +282,8 @@ class VisitStore:
             return None
         with self.connection() as conn:
             row = conn.execute("SELECT 1 FROM passages p JOIN visits v ON v.id=p.visit_id WHERE v.realm='real' AND (p.scene_file=? OR p.crop_file=?)", (filename, filename)).fetchone()
+            if not row:
+                row = conn.execute("SELECT 1 FROM visit_attachments a JOIN visits v ON v.id=a.visit_id WHERE v.realm='real' AND a.file_name=?",(filename,)).fetchone()
         file = self.images / filename
         return file if row and file.is_file() else None
 
