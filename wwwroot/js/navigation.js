@@ -4,7 +4,7 @@
   const workspace=document.getElementById('monitorWorkspace');
   const toggle=document.getElementById('appMenuToggle');
   const content=document.getElementById('functionDrawerContent');
-  const paneIds=['recordsView','visitEditorDialog','visitDetailDialog','cameraSettingsDialog','confirmExitDialog','deleteVisitDialog'];
+  const paneIds=['recordsView','visitEditorDialog','visitDetailDialog','cameraSettingsDialog','confirmExitDialog','deleteVisitDialog','equipmentView'];
   const panes=paneIds.map(id=>document.getElementById(id));
   let activePane=null;
   let recordsContext='showRecordsBtn';
@@ -21,7 +21,7 @@
     drawer.hidden=false; workspace.classList.add('drawer-open');
     toggle.setAttribute('aria-expanded','true'); toggle.setAttribute('aria-label','Thu gọn bảng chức năng');
     for (const pane of panes) pane.hidden=pane.id!==paneId;
-    const selected=paneId==='cameraSettingsDialog' ? 'openSettingsBtn' : paneId==='visitEditorDialog' ? 'newVisitBtn' : paneId ? recordsContext : null;
+    const selected=paneId==='cameraSettingsDialog' ? 'openSettingsBtn' : paneId==='equipmentView' ? 'openEquipmentBtn' : paneId ? recordsContext : null;
     for (const button of document.querySelectorAll('#appMenu button')) button.setAttribute('aria-pressed',String(button.id===selected));
     document.getElementById('drawerEmptyNote').hidden=Boolean(paneId);
   }

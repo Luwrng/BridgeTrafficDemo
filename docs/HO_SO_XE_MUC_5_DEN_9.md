@@ -1,8 +1,9 @@
 # Hồ sơ xe: mục 5–9 và menu chức năng
 
 Màn hình **Camera giám sát** luôn giữ sơ đồ và bốn camera. Nhấn **☰** để
-mở bảng chức năng bên phải: Hồ sơ vào–ra, Xe đang bên trong, Hồ sơ cần kiểm
-tra, Nhập lượt xe và Cài đặt camera & RTSP. Chọn chức năng và thao tác ngay
+mở bảng chức năng bên phải (cố định 1/3 màn hình desktop): Hồ sơ vào–ra và
+Cài đặt camera & RTSP. Các mục Nhập lượt xe và Xe đang bên trong đã bỏ khỏi menu.
+Chọn chức năng và thao tác ngay
 trong bảng đó, không chuyển sang trang khác hoặc che camera bằng hộp thoại.
 Nhấn ☰ lần nữa, dấu × của bảng hoặc Escape để thu gọn; biểu mẫu nhập dở
 được giữ. Nút biểu tượng đổi trắng/đen nằm ngay cạnh ☰ trên thanh đầu trang.
@@ -19,16 +20,16 @@ suppression; cần ngừng xuất hiện ít nhất 5 giây mới ghi lượt v�
 Nhập tay cũng chống gửi lại bằng `request_id`. Một biển và cùng thời điểm
 vào không được bổ sung thành lượt thứ hai; người vận hành cần sửa lượt cũ.
 
-## 6. Nhập tay và sửa thông tin
+## 6. Sửa thông tin hồ sơ đã có
 
-- Menu → **Nhập lượt xe thủ công**: biển số, cổng/giờ vào–ra, ghi chú,
-  lý do nhập/sửa và đánh dấu riêng nếu cần kiểm tra.
+- Đã bỏ tạo lượt thủ công khỏi giao diện. Có thể sửa thông tin của hồ sơ đã có
+  trong phần chi tiết; backend cũ giữ tương thích và không xóa dữ liệu đã nhập.
 - Hồ sơ → **Xem ảnh / hồ sơ → Sửa / bổ sung thông tin** để sửa hoặc bổ sung.
 - Cần ít nhất một thời điểm vào hoặc ra; không cho ngày giờ tương lai,
   giờ ra trước/đúng giờ vào, cổng sai hoặc lý do dưới 5 ký tự.
 - Có giờ vào, chưa có giờ ra: lượt giữ D và đèn đỏ như lượt camera. Không
   cho có thêm lượt đang trong D khi còn xe khác, kể cả lượt đã bị ẩn.
-- Chỉ biết lượt ra: lưu hồ sơ cần kiểm tra thiếu lượt vào, không chiếm D.
+- Chỉ biết lượt ra khi nhập tay: lưu các thông tin đã biết, không chiếm D.
 - Lượt WAITING có thể sửa biển/ghi chú mà vẫn chờ; chỉ chuyển vào sau khi
   được bổ sung giờ vào hợp lệ và D trống.
 - Phiên bản chỉnh sửa ngăn biểu mẫu cũ ghi đè lượt mà camera vừa cập nhật.
@@ -38,9 +39,10 @@ vào không được bổ sung thành lượt thứ hai; người vận hành c�
 - Mọi lần nhập/sửa có thời điểm, lý do, dữ liệu trước/sau. Lượt trong Thùng
   rác cần khôi phục trước khi sửa. Không có chức năng xóa ảnh bằng chứng.
 
-## 7. Xe đang bên trong
+## 7. Theo dõi D
 
-Menu → **Xe đang bên trong** hiển thị mọi lượt INSIDE chưa có giờ ra,
+Mục **Xe đang bên trong** đã bỏ khỏi menu. Trạng thái D vẫn được theo dõi trên
+sơ đồ và tóm tắt hồ sơ. API cũ còn phục vụ các lượt INSIDE chưa có giờ ra,
 kèm cổng, ngày giờ vào và đồng hồ thời gian lưu lại. Bao gồm cả lượt đã
 ẩn trong Thùng rác để không làm mất dấu xe chưa ra. WAITING ở ngoài D
 không xuất hiện trong danh sách này. Thời gian được cập nhật mỗi giây.
@@ -52,23 +54,20 @@ Bảng chức năng → **Hồ sơ vào–ra**, mở **Tìm kiếm và bộ lọ
 - Một phần hoặc toàn bộ biển số, không phân biệt chữ thường/hoa, dấu chấm/gạch.
 - Ngày hoặc tháng theo UTC+7, hoặc khoảng từ/đến; mốc từ được tính,
   mốc đến không được tính. Có thể chỉ chọn một đầu khoảng.
-- Dựa theo giờ vào, giờ ra hoặc một trong hai; xe chờ chưa có giờ vào/ra
-  được lọc theo thời điểm ghi nhận khi chọn “Ngày giờ vào hoặc ra”.
-- Cổng vào hoặc ra, trạng thái và “Chỉ hồ sơ cần kiểm tra”.
+- Dựa theo giờ vào, giờ ra hoặc một trong hai. Xe chờ cũng có giờ vào hồ sơ
+  từ lần camera đọc được biển số đầu tiên.
+- Cổng vào hoặc ra và trạng thái.
 - Kết hợp các bộ lọc, phân trang 30 lượt; số lượng thống kê theo kết quả lọc.
   Trạng thái D ở phía trên luôn là trạng thái thật toàn hệ thống.
 - **Xóa bộ lọc** để trở lại danh sách. Bộ lọc cũng dùng được trong Thùng rác.
 
-## 9. Báo cáo thiếu dữ liệu ngay trong lịch sử
+## 9. Phần báo cáo cần kiểm tra đã bỏ theo yêu cầu
 
-Nhãn **Cần kiểm tra** và lý do được tính từ dữ liệu hiện có: thiếu cổng/giờ,
-thiếu ảnh vào/ra, lượt chưa đủ thông tin hoặc lý do đánh dấu của người dùng.
-Xe đang trong D chưa có lượt ra là bình thường, không chỉ vì vậy mà báo lỗi.
-
-Menu **Hồ sơ cần kiểm tra** dùng chính trang lịch sử cùng bộ lọc review;
-không tạo bộ hồ sơ thứ hai. Bổ sung thông tin/ảnh tương ứng sẽ tự bỏ lý do
-thiếu đó. Xóa nội dung “Đánh dấu cần kiểm tra” khi đã xử lý cờ thủ công;
-không che được phần thiếu dữ liệu thực tế còn lại.
+Không còn menu, bộ lọc, nhãn hay ô nhập “cần kiểm tra” trên giao diện. Quy tắc
+mới lấy giờ/cổng vào ngay lần đọc đầu, camera khác đọc lại thì ghi ra và hoàn tất.
+Xe chờ ngoài D cũng có giờ vào hồ sơ; việc cấp quyền chiếm D được quản lý riêng.
+Các cột/API metadata cũ giữ tương thích và nhật ký không bị xóa.
+Xem [chi tiết quy tắc mới](SUA_LOI_XE_CHO_VA_BANG_HO_SO.md).
 
 ## Backend, database và API
 

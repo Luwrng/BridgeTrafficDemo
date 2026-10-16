@@ -70,12 +70,12 @@ chưa phải lỗi đăng nhập RTSP hay nhận diện biển số.
 
 ## Luồng vào–ra
 
-- Camera đầu tiên xác nhận biển số: ghi cổng/ngày giờ vào, D có xe, hai đèn đỏ.
-- Cùng camera thấy lại: bỏ lần lặp. Biển khác khi D bận: chờ ngoài D, chưa ghi giờ vào.
-- Camera khác xác nhận cùng biển: ghi cổng/ngày giờ ra, D trống, hai đèn xanh.
+- Camera đầu tiên xác nhận biển số: ghi cổng/ngày giờ vào, D có xe. Nếu cổng A/B, chỉ đèn cổng đó xanh, hướng còn lại đỏ.
+- Cùng camera thấy lại: bỏ lần lặp. Biển khác khi D bận: chờ ngoài D, vẫn giữ giờ vào hồ sơ từ lần đọc đầu.
+- Camera khác xác nhận cùng biển: ghi cổng/ngày giờ ra, hoàn tất lượt. Nếu đó là xe đang giữ D thì D trống; cấp xanh cho hướng của lượt chờ đầu FIFO, chưa có hướng ưu tiên thì cả hai đỏ.
 - Cổng phân biệt theo A/B/C/E. Nhập cùng RTSP riêng ở A và B vẫn ghép ra tại B;
   không dùng URL/hash nguồn để chặn cổng ra.
-- Xe chờ chỉ vào sau khi D trống và được đọc lại ở khung mới.
+- Xe chờ chỉ chiếm D sau khi D trống, đến lượt FIFO và được cổng ban đầu đọc lại ở khung mới; giữ giờ vào hồ sơ ban đầu.
 - Sau khi ra, biển vẫn xuất hiện liên tục không tạo lượt mới ngay.
 - Nguồn dùng chung hoặc video file chỉ được xem/OCR, không ghi lượt xe thật.
 
@@ -100,16 +100,18 @@ sử OCR từng camera đã bỏ. **Hồ sơ vào–ra** là nơi xem lịch s�
 Giao diện chỉ có trắng/đen, chuyển bằng một click, bốn camera nằm trong lưới.
 
 Màn hình mang tên **Camera giám sát**. Nhấn **☰** để mở bảng chức năng bên
-phải và thao tác Hồ sơ, Xe đang bên trong, Hồ sơ cần kiểm tra, Nhập lượt xe
+phải, cố định 1/3 chiều rộng desktop, và thao tác Hồ sơ
 hoặc Cài đặt ngay cạnh sơ đồ/bốn camera. Không chuyển trang; nút đổi nền
 nằm cạnh ☰. Có tìm kiếm/lọc theo biển số, ngày/tháng,
-khoảng giờ, cổng, trạng thái; nhập/sửa ghi chú và ảnh có lịch sử trước/sau.
-Xem [hướng dẫn mục 5–9](docs/HO_SO_XE_MUC_5_DEN_9.md).
+khoảng giờ, cổng, trạng thái; sửa ghi chú và bổ sung ảnh có lịch sử trước/sau.
+Xem [hướng dẫn hồ sơ](docs/HO_SO_XE_MUC_5_DEN_9.md) và [quy tắc giờ vào mới](docs/SUA_LOI_XE_CHO_VA_BANG_HO_SO.md).
 
 **Xóa hồ sơ:** mở Hồ sơ vào–ra, bấm **Xóa** ở dòng xe, xác nhận **Xóa hồ sơ**.
 Lấy lại tại **Thùng rác → Khôi phục**; ảnh và ngày giờ/cổng giữ nguyên.
 Xóa không coi xe đã ra: lượt INSIDE vẫn giữ D/đèn đỏ đến khi camera khác
 đọc đúng cùng biển số. Dòng dưới sơ đồ báo cổng vào và cổng ra mới nhất.
+
+Chi tiết ưu tiên và interlock: [Đèn A/B và FIFO](docs/DEN_A_B_FIFO.md).
 
 ## Mã nguồn và dữ liệu
 
@@ -168,4 +170,4 @@ Remove-Item Env:CAMERA_RECORDS_BACKEND, Env:CAMERA_SQLSERVER_TESTS
 Kiểm thử lưu hồ sơ dùng DB/thư mục tạm, không thêm lượt thử vào dữ liệu
 ứng dụng. SQL integration tạo và dọn DB riêng `QuanLyXe_Test_<UUID>`.
 Ảnh kiểm thử là ảnh camera thật đã chụp. Nhập/sửa, ảnh bổ sung, danh sách xe
-bên trong, bộ lọc và báo cáo thiếu dữ liệu đã có kiểm tra riêng.
+bên trong, bộ lọc và giờ vào lần nhận diện đầu đã có kiểm tra riêng.

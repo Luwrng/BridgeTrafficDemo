@@ -12,7 +12,7 @@ import uuid
 from urllib.parse import unquote, urlsplit, parse_qs
 from plate_tracking import PlateTracker, iou
 from camera_streams import CAMERAS, CAMERA_IDS, close_all
-from vehicle_records import VisitStore, PassageRecorder, utc_time
+from vehicle_records import VisitStore, PassageRecorder, utc_time, GATE_LOGIC_VERSION
 from record_storage import create_visit_store
 from urllib.request import urlopen
 
@@ -258,7 +258,7 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             return
         if self.path == "/status":
-            self.respond(200, {"available": True, "engine": "YOLOv8n/PaddleOCR PP-OCRv4 (ONNX)", "pipelineVersion": PIPELINE_VERSION, "cameraIds": list(CAMERA_IDS), "recordingAvailable": True, "recordingVersion": 2, "storage":VISIT_STORE.storage_info()})
+            self.respond(200, {"available": True, "engine": "YOLOv8n/PaddleOCR PP-OCRv4 (ONNX)", "pipelineVersion": PIPELINE_VERSION, "cameraIds": list(CAMERA_IDS), "recordingAvailable": True, "recordingVersion": 2, "gateLogicVersion": GATE_LOGIC_VERSION, "storage":VISIT_STORE.storage_info()})
         else:
             self.respond(404, {"error": "Unknown endpoint"})
 

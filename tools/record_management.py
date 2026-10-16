@@ -147,10 +147,12 @@ class RecordManagementMixin:
                 row['evidence_count'] = conn.execute('SELECT COUNT(*) FROM passages WHERE visit_id=?',(row['id'],)).fetchone()[0]
                 row['attachment_count'] = conn.execute('SELECT COUNT(*) FROM visit_attachments WHERE visit_id=?',(row['id'],)).fetchone()[0]
             counts = dict(conn.execute(f'SELECT v.status,COUNT(*) FROM visits v WHERE {where} GROUP BY v.status',params).fetchall())
+            # Xe đã có giờ ra vẫn là lượt đã rời D, dù thiếu thông tin vào.
+            closed_count = conn.execute(f'SELECT COUNT(*) FROM visits v WHERE {where} AND v.exited_at IS NOT NULL',params).fetchone()[0]
             review_count = conn.execute(f'SELECT COUNT(*) FROM visits v WHERE {where} AND {_review_sql()}',params).fetchone()[0]
             occupancy = self._occupancy(conn)
         return dict(items=rows,total=total,offset=offset,limit=limit,deleted=deleted,inside=inside,
-                    occupancy=occupancy,counts=counts,review_count=review_count,storage=self.storage_info())
+                    occupancy=occupancy,counts=counts,closed_count=closed_count,review_count=review_count,storage=self.storage_info())
 
     def list_inside(self, offset=0, limit=30, filters=None):
         return self.management_list(offset,limit,False,filters,inside=True)
@@ -185,7 +187,11 @@ class RecordManagementMixin:
         if not values['entered_at'] and not values['exited_at']:
             if previous and previous['status']=='WAITING': values['status']='WAITING'
             else: raise ValueError('Cần ít nhất một thời điểm vào hoặc ra để bổ sung lượt thiếu.')
-        elif not values['exited_at']: values['status']='INSIDE'
+        elif not values['exited_at']:
+            # Giờ vào hồ sơ của xe chờ đã có từ lần thấy đầu. Sửa ghi chú
+            # không có nghĩa là cấp quyền cho xe đó vào D.
+            unchanged_waiting = previous and previous['status']=='WAITING' and all(values[k]==previous[k] for k in ('entered_at','entry_camera'))
+            values['status']='WAITING' if unchanged_waiting else 'INSIDE'
         elif all(values[field] for field in ('entered_at','entry_camera','exit_camera')): values['status']='COMPLETE'
         else: values['status']='NEEDS_REVIEW'
         reason = str(payload.get('reason','')).strip()
@@ -254,7 +260,7 @@ class RecordManagementMixin:
                     conn.execute(f'UPDATE visits SET {columns},edit_version=edit_version+1 WHERE id=?',(*[values[k] for k in EDIT_FIELDS],visit_id))
                     if previous['status']=='WAITING' and values['status']!='WAITING':
                         conn.execute('UPDATE visits SET issue=NULL WHERE id=?',(visit_id,))
-                    if previous['status']=='INSIDE' and values['status']!='INSIDE':
+                    if previous['status'] in ('INSIDE','WAITING') and values['exited_at']:
                         for plate in {previous['plate'],values['plate']}:
                             conn.execute('INSERT OR REPLACE INTO plate_release VALUES (?,?)',(plate,now))
                 else:

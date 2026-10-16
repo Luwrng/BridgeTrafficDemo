@@ -29,3 +29,8 @@ mang tên database kiểm thử để phân biệt với backup dữ liệu th�
 lọc UTC+7, danh sách xe chưa ra, cờ cần kiểm tra và xung đột khi camera cập
 nhật lúc đang sửa. Giao diện thử ở 5086 dùng DB tạm và nhãn cách ly; không
 đưa kết quả thử vào `QuanLyXe`.
+
+`test_waiting_transfers.py` kiểm tra lỗi xe thứ hai chờ ở A nhưng lần kế
+tiếp đã ở C, các lượt A → C liên tiếp, chống ghi trùng, khung trễ và bổ sung giờ vào từ bằng chứng cũ có audit/rollback. Chạy cùng các ca trên SQLite/SQL Server UUID riêng.
+`serve_record_ui_fixture.py --rows 45` thêm nhiều dòng vào DB tạm tại
+5086 để kiểm tra bảng cuộn và phân trang; không ghi database vận hành.

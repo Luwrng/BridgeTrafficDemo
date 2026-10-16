@@ -11,11 +11,11 @@ camera. Giữ lưu ngày giờ, ảnh bằng chứng và nguồn RTSP riêng A/B
 
 | Tình huống | Hồ sơ | Sơ đồ D và đèn hai bên |
 | --- | --- | --- |
-| D trống, camera đầu tiên xác nhận biển số | Tạo lượt INSIDE; ghi cổng/ngày giờ vào | Hiện xe và biển số ở D; cả hai đèn đỏ |
-| Camera vào tiếp tục thấy cùng biển | Không tạo thêm lượt/ảnh | Giữ D có xe, cả hai đèn đỏ |
-| D có xe, camera nhận biển khác | WAITING: chờ ngoài D; lưu ảnh/thời điểm phát hiện, chưa có giờ vào | Không cho xe chờ chiếm D; đèn vẫn đỏ |
-| Camera khác nhận lại biển của xe ở D, thời điểm mới hơn | Đóng đúng lượt COMPLETE; ghi cổng/ngày giờ ra và hai ảnh | D trống; cả hai đèn xanh |
-| D vừa trống, xe đang chờ được đọc lại ở khung mới | Chuyển lượt WAITING thành INSIDE với giờ vào mới | D có xe; đèn đỏ |
+| D trống, camera đầu tiên xác nhận biển số | Tạo lượt INSIDE; ghi cổng/ngày giờ vào | Hiện xe và biển số ở D; A/B ưu tiên xanh, hướng kia đỏ |
+| Camera vào tiếp tục thấy cùng biển | Không tạo thêm lượt/ảnh | Giữ D có xe và giữ hướng đang ưu tiên |
+| D có xe, camera nhận biển khác | WAITING: chờ ngoài D; lưu ảnh và giờ vào hồ sơ ngay từ lần đọc đầu | Không cho xe chờ chiếm D; giữ đèn theo xe đang chiếm D |
+| Camera khác nhận lại biển của xe ở D, thời điểm mới hơn | Đóng đúng lượt COMPLETE; ghi cổng/ngày giờ ra và hai ảnh | D trống; chọn hướng lượt chờ đầu FIFO, chưa có hướng ưu tiên thì hai đỏ |
+| D vừa trống, xe đang chờ được đọc lại ở khung mới | Chuyển lượt WAITING thành INSIDE, giữ giờ vào hồ sơ đầu tiên | D có xe; đèn đỏ |
 | Biển vừa ra vẫn xuất hiện liên tục | Không tạo lượt vào mới; cần ít nhất 5 giây không nhận diện biển đó | Giữ trạng thái hiện tại |
 | Không đọc được API hồ sơ | Hiện lỗi trạng thái | Đèn trên sơ đồ đỏ, không tự công bố D trống |
 
@@ -56,7 +56,7 @@ vào/ra, xe chờ, transaction, xử lý trùng, ghi ảnh và đối chiếu ng
 ## Lưu dữ liệu
 
 - `Data/vehicle-records/visits.sqlite3`: lượt xe, ngày giờ, cổng và trạng thái.
-- `visits`: INSIDE/COMPLETE/WAITING; lượt chờ không có `entered_at`.
+- `visits`: INSIDE/COMPLETE/WAITING; lượt chờ cũng có `entered_at` từ lần đọc đầu; chưa chiếm D.
 - `passages`: ảnh toàn cảnh/ảnh biển, loại sự kiện, thời điểm, confidence,
   tên camera và SHA-256 của cả hai ảnh.
 - `gate_state`: revision của trạng thái D.

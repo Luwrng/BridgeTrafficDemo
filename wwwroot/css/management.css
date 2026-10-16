@@ -31,8 +31,6 @@ label,summary,th { color:var(--text); }
 /* Khung theo đúng 16:9; tránh max-height làm thừa viền đen với nguồn 16:9. */
 .camera-card:not(.is-expanded) .camera-feed-wrap { max-height:none; }
 .camera-panel { align-self:start; max-height:100%; }
-/* Cân hai nửa màn hình, tăng bốn ảnh mà vẫn giữ lưới 2×2 và tỷ lệ 16:9. */
-@media(min-width:1101px) { #monitorView { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
 .icon-button,#openThemeBtn { width:36px; height:36px; padding:0; font-size:23px; display:inline-grid; place-items:center; flex:none; }
 .camera-expand { width:34px; height:34px; padding:0; font-size:24px; display:grid; place-items:center; }
 .d-plate-label { fill:#fff; stroke:#10233a; stroke-width:3px; paint-order:stroke; font:bold 19px ui-monospace,monospace; }
@@ -40,6 +38,16 @@ label,summary,th { color:var(--text); }
 .camera-placeholder { color:#c9d7e9; }
 .camera-expand { background:#10233ad9; color:#fff; }
 .camera-config-feedback.config-error { color:var(--red); }
+.camera-source-locked .camera-url-entry input { opacity:.7; cursor:not-allowed; }
+.camera-source-locked button[type=submit] { color:var(--green); background:color-mix(in srgb,var(--green) 8%,var(--panel)); opacity:1; cursor:default; }
+.map-traffic-signal .signal-housing { stroke-width:1.5; }
+.plate-marker.marker-waiting rect { stroke:#fbbf24; }
+.plate-marker.marker-waiting .marker-status { fill:#fde68a; }
+.plate-marker.marker-exited rect { stroke:#4ade80; }
+.plate-marker.marker-exited .marker-status { fill:#bbf7d0; }
+.plate-marker text { font-size:15px; }
+.plate-marker .marker-camera { font-size:11px; }
+.plate-marker .marker-status { font-size:12px; }
 th,td { border-color:var(--line); }
 .badge { background:var(--panel2); color:var(--text); }
 .badge.red { background:#fee2e2; color:#991b1b; }
@@ -57,7 +65,6 @@ th,td { border-color:var(--line); }
 .checkbox-label input { width:16px; height:16px; }
 .filter-actions { justify-content:flex-end; align-items:center; }
 .form-error { color:var(--red); }
-.review-reasons { color:var(--amber); padding-left:18px; }
 .visit-editor-dialog { width:min(780px,96vw); max-height:94dvh; margin:auto; padding:0; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); }
 .visit-editor-dialog[open] { display:flex; flex-direction:column; }
 .visit-editor-dialog::backdrop { background:#14223899; }
@@ -79,9 +86,9 @@ th,td { border-color:var(--line); }
 .records-current p { margin:6px 0 0; }
 #confirmExitForm { display:grid; gap:9px; }
 #confirmExitForm input,#confirmExitForm select,#confirmExitForm textarea { width:100%; box-sizing:border-box; padding:9px; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:6px; }
-.records-list-tabs,.visit-row-actions { display:flex; gap:6px; align-items:center; }
+.visit-row-actions { display:flex; gap:6px; align-items:center; }
 .visit-row-actions { flex-wrap:wrap; }
-.visit-trash-button { color:var(--red); }
+.visit-delete-button { color:var(--red); }
 .gate-event-note { font-weight:600; color:var(--text); overflow-wrap:anywhere; }
 .delete-visit-dialog { width:min(480px,94vw); max-height:90dvh; overflow:auto; margin:auto; padding:20px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; }
 .delete-visit-dialog::backdrop { background:#14223899; }
@@ -113,33 +120,58 @@ th,td { border-color:var(--line); }
 @media(max-width:800px) { .app-header { flex-wrap:wrap; gap:8px; padding:10px; } .app-navigation { order:3; width:100%; margin:0; } .app-navigation button { flex:1; } .records-view { padding:12px; } .visit-facts { grid-template-columns:repeat(2,minmax(0,1fr)); } .evidence-grid { grid-template-columns:1fr; } }
 @media(max-width:480px) { .app-header h1 { font-size:18px; } .header-actions { gap:4px; } .header-actions button { padding:6px; font-size:11px; } .visit-facts { grid-template-columns:1fr; } }
 
-/* Màn hình camera luôn hiển thị; nghiệp vụ thao tác trong bảng bên phải. */
-.monitor-workspace { display:flex; flex:1 1 0; min-height:0; width:100%; overflow:hidden; }
+/* Camera luôn ở trái. Bảng chức năng phủ đúng cột sơ đồ bên phải,
+   không co camera hoặc tạo lại node ảnh khi mở/đóng các biểu mẫu. */
+.monitor-workspace { position:relative; display:flex; flex:1 1 0; min-height:0; width:100%; overflow:hidden; }
 #monitorView { min-width:0; width:100%; max-width:none; margin:0; }
-.function-drawer { flex:0 0 clamp(380px,39vw,600px); min-width:0; min-height:0; display:flex; flex-direction:column; border-left:1px solid var(--line); background:var(--panel); }
+.function-drawer { min-width:0; min-height:0; display:flex; flex-direction:column; border:1px solid var(--line); border-radius:8px; background:var(--panel); }
 .drawer-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line); flex:none; }
 .drawer-heading h2 { font-size:18px; }
 .drawer-functions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:10px; border-bottom:1px solid var(--line); flex:none; }
 .drawer-functions button { padding:8px; font-size:12px; min-width:0; }
-.drawer-functions #openSettingsBtn { grid-column:1 / -1; }
 .drawer-content { flex:1; min-height:0; overflow:hidden; }
 .drawer-empty { padding:20px; line-height:1.7; }
-.function-drawer .records-view { width:100%; max-width:none; height:100%; margin:0; padding:12px; border:0; border-radius:0; overflow:auto!important; }
+.function-drawer .records-view { width:100%; max-width:none; height:100%; margin:0; padding:12px; border:0; border-radius:0; overflow:hidden!important; }
+/* Báo cáo dạng bảng: vùng điều kiện và danh sách có cuộn riêng, không kéo camera. */
+.records-controls { display:flex; flex-direction:column; gap:8px; flex:0 1 auto; min-height:0; max-height:44%; overflow:auto; scrollbar-gutter:stable; }
+.function-drawer .records-heading { flex-wrap:nowrap; align-items:flex-start; }
+.function-drawer .records-heading > div { min-width:0; }
+.function-drawer #recordsStorageInfo { overflow-wrap:anywhere; line-height:1.5; }
+.function-drawer #visitCounts { line-height:1.6; }
 .function-drawer .records-heading h2 { font-size:18px; }
 .function-drawer .records-current { padding:9px; }
+.function-drawer details.records-current { display:block; }
+.records-current > summary { cursor:pointer; }
+.records-current[open] .button-row { margin-top:8px; }
 .function-drawer .records-filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .function-drawer .records-filter-panel { padding:7px 9px; }
 .function-drawer .records-pagination { font-size:12px; }
-.function-drawer .records-table-wrap { flex:none; min-height:180px; overflow:visible; border:0; }
-.function-drawer .records-table { min-width:0; display:block; }
-.function-drawer .records-table thead { display:none; }
-.function-drawer .records-table tbody { display:grid; gap:10px; }
-.function-drawer .records-table tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid var(--line); border-radius:8px; padding:4px; }
-.function-drawer .records-table td { display:block; min-width:0; padding:8px; border:0; overflow-wrap:anywhere; }
-.function-drawer .records-table td::before { content:attr(data-label); display:block; font-size:10px; font-weight:650; color:var(--muted); margin-bottom:4px; }
-.function-drawer .records-table td:first-child,.function-drawer .records-table td:last-child { grid-column:1 / -1; }
-.function-drawer .records-table td:first-child strong { font-size:17px; }
-.function-drawer .records-table .records-empty::before { display:none; }
+.function-drawer .records-table-wrap { flex:1 1 0; min-height:140px; overflow:auto; border:1px solid var(--line); scrollbar-gutter:stable; overscroll-behavior:contain; }
+.function-drawer .records-table { width:100%; min-width:910px; border-collapse:separate; border-spacing:0; table-layout:fixed; font-variant-numeric:tabular-nums; }
+.function-drawer .records-table th,.function-drawer .records-table td { padding:10px 8px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; background:var(--panel); }
+.function-drawer .records-table th { position:sticky; top:0; z-index:3; background:var(--panel2); font-size:12px; white-space:normal; }
+.function-drawer .records-table tbody tr:nth-child(even) td { background:var(--panel2); }
+.function-drawer .records-table tbody tr:hover td { background:color-mix(in srgb,var(--blue) 10%,var(--panel)); }
+.function-drawer .records-table :is(th,td):first-child { position:sticky; left:0; width:40px; padding-inline:6px; text-align:center; z-index:1; }
+.function-drawer .records-table :is(th,td):nth-child(2) { position:sticky; left:40px; width:100px; z-index:1; box-shadow:2px 0 var(--line); }
+.function-drawer .records-table th:nth-child(-n+2) { z-index:4; }
+.function-drawer .records-table :is(th,td):nth-child(3),.function-drawer .records-table :is(th,td):nth-child(5) { width:54px; white-space:normal; }
+.function-drawer .records-table :is(th,td):nth-child(4),.function-drawer .records-table :is(th,td):nth-child(6) { width:96px; }
+.function-drawer .records-table :is(th,td):nth-child(7) { width:100px; white-space:normal; line-height:1.6; }
+.function-drawer .records-table :is(th,td):nth-child(8) { width:104px; }
+.function-drawer .records-table :is(th,td):nth-child(9) { width:130px; }
+.function-drawer .records-table :is(th,td):nth-child(10) { width:136px; }
+.visit-datetime { display:flex; flex-direction:column; gap:3px; }
+.visit-datetime > span { font-weight:650; }
+.function-drawer .records-table .visit-datetime small { margin:0; font-size:11px; }
+.records-scroll-hint { margin:0; color:var(--muted); font-size:11px; }
+.function-drawer .records-table .visit-row-note { display:block; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.function-drawer .visit-row-actions { flex-wrap:nowrap; }
+.function-drawer .visit-row-actions button { padding:6px 8px; font-size:12px; }
+.function-drawer .records-table td strong { font-size:14px; }
+.function-drawer .records-table .records-empty { position:static!important; text-align:center; }
+.function-drawer .records-table .records-empty { text-align:left; padding:24px 12px!important; }
+.records-empty-message { display:block; max-width:min(320px,calc(100vw / 3 - 70px)); white-space:normal; line-height:1.6; }
 .function-drawer dialog.drawer-pane[open] { display:flex; flex-direction:column; position:static; width:100%; max-width:none; height:100%; max-height:none; min-height:0; margin:0; padding:0; border:0; border-radius:0; box-shadow:none; overflow:hidden; }
 .function-drawer .settings-heading { padding:12px; gap:8px; }
 .function-drawer .settings-heading h2 { font-size:17px; }
@@ -158,23 +190,27 @@ th,td { border-color:var(--line); }
 .function-drawer .visit-facts { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .function-drawer .evidence-grid { grid-template-columns:minmax(0,1fr); }
 .function-drawer .delete-visit-dialog.drawer-pane[open] { display:block; overflow:auto; padding:14px; }
+@media(min-width:701px) {
+  #monitorView { grid-template-areas:'cameras map'; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .function-drawer { position:absolute; z-index:20; top:10px; bottom:10px; right:10px; width:calc((100% - 30px) / 2); box-shadow:-6px 0 22px #182b4312; }
+  /* Chỉ che phần sơ đồ; dữ liệu/luồng ảnh vẫn tiếp tục cập nhật ở node cũ. */
+  .drawer-open #monitorView .map-panel { visibility:hidden; pointer-events:none; }
+}
 @media(min-width:1101px) and (min-height:650px) {
-  #monitorView { grid-template-columns:minmax(0,1fr) minmax(0,1.7fr); height:100%; }
+  #monitorView { height:100%; }
   #monitorView .camera-panel { align-self:stretch; display:flex; flex-direction:column; overflow:hidden; }
   .camera-panel .section-title,.camera-panel > .note { flex:none; }
   .camera-panel .camera-grid { flex:1; min-height:0; grid-template-rows:repeat(2,minmax(0,1fr)); align-items:stretch; gap:8px; }
   .camera-panel .camera-card:not(.is-expanded) { min-height:0; }
   .camera-panel .camera-card:not(.is-expanded) .camera-feed-wrap { flex:1 1 0; min-height:0; aspect-ratio:auto; max-height:none; }
-  .drawer-open #monitorView { grid-template-columns:minmax(0,1fr) minmax(0,1.45fr); }
 }
 @media(max-width:1100px) {
-  .monitor-workspace { overflow:visible; align-items:stretch; }
-  .function-drawer { flex-basis:42%; }
-  .drawer-open #monitorView { grid-template-columns:minmax(0,1fr); grid-template-areas:'map' 'cameras'; align-content:start; }
   .function-drawer .editor-grid { grid-template-columns:minmax(0,1fr); }
 }
 @media(max-width:700px) {
+  .records-empty-message { max-width:calc(100vw - 70px); }
   .monitor-workspace { display:block; }
+  #monitorView { grid-template-columns:minmax(0,1fr); grid-template-areas:'cameras' 'map'; }
   .function-drawer { width:100%; max-height:78dvh; border-left:0; border-top:1px solid var(--line); }
   .drawer-content { min-height:260px; overflow:auto; }
   .drawer-open #monitorView .map-panel { display:none; }

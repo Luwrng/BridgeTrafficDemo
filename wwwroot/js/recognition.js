@@ -5,6 +5,7 @@
   let recognitionUrl = paddleUrl;
   let recordingAvailable = false;
   const controllers = new Map();
+  const connectionForms = new Map();
   let available = false;
   let refreshRunning = false;
   let sourceAVersion = 0;
@@ -444,11 +445,15 @@
       const results = await Promise.allSettled(targets.map(async cameraId => {
         const status = await request(cameraUrl(cameraId, "status"));
         statusPolling.update(cameraId, status);
+        connectionForms.get(cameraId)?.update(status);
         controllers.get(cameraId).updateLive(status);
       }));
       results.forEach((result, index) => {
-        if (result.status === "rejected") controllers.get(targets[index]).updateLive({ configured: false,
-          streamAvailable: false, message: "Không kết nối được máy chủ của nguồn camera này." });
+        if (result.status === "rejected") {
+          connectionForms.get(targets[index])?.unavailable();
+          controllers.get(targets[index]).updateLive({ configured: false,
+            streamAvailable: false, message: "Không kết nối được máy chủ của nguồn camera này." });
+        }
       });
       statusPolling.finish(healthFailed || results.some(result => result.status === "rejected"));
     } finally { refreshRunning = false; }
@@ -458,16 +463,34 @@
     const form = node(`camera${cameraId}Form`);
     const feedback = node(`camera${cameraId}ConfigMessage`);
     const controller = controllers.get(cameraId);
+    const connection = new window.CameraConnectionState();
     let configuring = false;
     const showFeedback = (text, error = false) => {
       feedback.hidden = false; feedback.textContent = text;
       feedback.classList.toggle("config-error", error);
     };
+    const renderConnection = () => {
+      node(`camera${cameraId}Url`).disabled=connection.inputDisabled;
+      node(`camera${cameraId}Url`).placeholder=connection.locked?'Nguồn đã khóa · Ngắt kết nối để nhập link khác':'rtsp://địa-chỉ-camera:554/...';
+      node(`camera${cameraId}ShowUrlBtn`).disabled=connection.inputDisabled;
+      const connect=node(`camera${cameraId}ConnectBtn`);
+      connect.disabled=connection.connectDisabled;
+      connect.textContent=connection.locked?(connection.streamAvailable?'Đã kết nối':connection.reachable?'Đang kết nối…':'Nguồn đã khóa'):`Kết nối ô ${cameraId}`;
+      node(`camera${cameraId}DisconnectBtn`).disabled=connection.disconnectDisabled;
+      form.classList.toggle('camera-source-locked',connection.locked);
+    };
+    connectionForms.set(cameraId,{
+      update(status) {
+        connection.update(status); renderConnection();
+        if(connection.locked)showFeedback(connection.streamAvailable?`Đã kết nối camera ${cameraId}. Link đã khóa; nhấn Ngắt nguồn ô ${cameraId} để thay đổi.`:status.message||'Đang chờ hình từ nguồn đã khóa.');
+        else if(!configuring)showFeedback(`Chưa kết nối camera ${cameraId}. Nhập link RTSP để bắt đầu.`);
+      },
+      unavailable() {connection.unavailable();renderConnection();if(connection.locked)showFeedback('Mất liên lạc máy chủ camera. Nguồn vẫn khóa; chưa xác nhận đã ngắt kết nối.',true);}
+    });
     const configure = async (payload, disconnect = false) => {
       if (configuring) return;
       configuring = true;
-      const buttons = form.querySelectorAll("button");
-      buttons.forEach(button => { button.disabled = true; });
+      connection.busy=true;renderConnection();
       showFeedback("Đang cập nhật nguồn camera…");
       try {
         const update = () => request(cameraUrl(cameraId, "configure"), { method: "POST",
@@ -481,6 +504,7 @@
           result = await update();
         }
         statusPolling.update(cameraId, result);
+        connection.update(result);
         controller.updateLive(result);
         if (disconnect) controller.resetLive("Đã ngắt nguồn của ô này");
         else controller.useLiveSource("Đã đổi nguồn RTSP của ô này");
@@ -496,10 +520,11 @@
         const offline = error instanceof TypeError || error.name === "TimeoutError";
         showFeedback(offline ? "Chưa kết nối máy chủ camera. Chạy Run-CameraSystem.cmd, sau đó nhấn Kết nối lại." : error.message, true);
       }
-      finally { configuring = false; buttons.forEach(button => { button.disabled = false; }); }
+      finally { configuring = false; connection.busy=false;renderConnection(); }
     };
     form.addEventListener("submit", event => {
       event.preventDefault();
+      if(connection.locked) {showFeedback('Ngắt nguồn camera trước khi nhập link mới.',true);return;}
       const sources = node(`camera${cameraId}Url`).value.trim().split(/(?=rtsp:\/\/)/i).filter(Boolean);
       if (!sources.length || sources.some(value => value.trim() !== sources[0].trim())) {
         showFeedback("Chỉ nhập một nguồn RTSP.", true); return;
@@ -526,6 +551,7 @@
         reveal.setAttribute("aria-pressed", "false");
       }
     });
+    renderConnection();
   }
 
   function init(hooks = {}) {

@@ -62,7 +62,7 @@ class SqlServerTests(unittest.TestCase):
         entered = self.store.record(self.event('in','C'))
         waiting = self.store.record(self.event('wait','A','51F00651',1))
         self.assertEqual(waiting['state'],'waiting')
-        self.assertIsNone(self.store.detail(waiting['visitIds'][0])['entered_at'])
+        self.assertEqual(self.store.detail(waiting['visitIds'][0])['entered_at'],'2026-10-14T03:00:01.000+00:00')
         self.assertEqual(self.store.record(self.event('same','C',seconds=2))['state'],'already-inside')
         exited = self.store.record(self.event('out','E',seconds=3))
         self.assertFalse(exited['occupancy']['occupied'])

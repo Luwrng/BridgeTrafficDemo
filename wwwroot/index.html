@@ -5,16 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Camera giám sát</title>
   <link rel="stylesheet" href="/css/site.css?v=23">
-  <link rel="stylesheet" href="/css/management.css?v=8">
+  <link rel="stylesheet" href="/css/management.css?v=15">
+  <link rel="stylesheet" href="/css/equipment.css?v=3">
   <script src="/js/theme.js?v=4" defer></script>
   <script src="/js/camera-polling.js?v=1" defer></script>
+  <script src="/js/camera-connection-state.js?v=1" defer></script>
   <script src="/js/service-polling.js?v=1" defer></script>
-  <script src="/js/recognition.js?v=24" defer></script>
+  <script src="/js/gate-signals.js?v=1" defer></script>
+  <script src="/js/map-vehicle-markers.js?v=1" defer></script>
+  <script src="/js/recognition.js?v=25" defer></script>
   <script src="/js/settings.js?v=4" defer></script>
-  <script src="/js/app.js?v=27" defer></script>
-  <script src="/js/navigation.js?v=2" defer></script>
+  <script src="/js/app.js?v=31" defer></script>
+  <script src="/js/navigation.js?v=8" defer></script>
+  <script src="/js/equipment-controls.js?v=3" defer></script>
   <script src="/js/record-editor-time.js?v=1" defer></script>
-  <script src="/js/vehicle-records.js?v=11" defer></script>
+  <script src="/js/vehicle-records.js?v=17" defer></script>
 </head>
 <body>
 <header class="app-header">
@@ -84,8 +89,8 @@
       <g class="node" transform="translate(630 485)"><circle r="19"/><text text-anchor="middle" y="7">B</text></g>
       <g class="node" transform="translate(630 210)"><circle r="19"/><text text-anchor="middle" y="7">C</text></g>
       <g class="node" transform="translate(390 265)"><circle r="19"/><text text-anchor="middle" y="7">E</text></g>
-      <g transform="translate(209 407)"><rect x="-9" y="-12" width="62" height="24" rx="6" class="signal-housing"/><circle id="svgAR" cx="3" r="6" class="lamp-red"/><circle cx="22" r="6" class="lamp-off"/><circle id="svgAG" cx="41" r="6" class="lamp-off"/></g>
-      <g transform="translate(595 450)"><rect x="-9" y="-12" width="62" height="24" rx="6" class="signal-housing"/><circle id="svgBR" cx="3" r="6" class="lamp-red"/><circle cx="22" r="6" class="lamp-off"/><circle id="svgBG" cx="41" r="6" class="lamp-off"/></g>
+      <g class="map-traffic-signal" transform="translate(184 377) scale(1.8)" role="img" aria-label="Đèn tín hiệu A"><rect x="-9" y="-12" width="62" height="24" rx="6" class="signal-housing"/><circle id="svgAR" cx="3" r="6" class="lamp-red"/><circle cx="22" r="6" class="lamp-off"/><circle id="svgAG" cx="41" r="6" class="lamp-off"/></g>
+      <g class="map-traffic-signal" transform="translate(567 443) scale(1.8)" role="img" aria-label="Đèn tín hiệu B"><rect x="-9" y="-12" width="62" height="24" rx="6" class="signal-housing"/><circle id="svgBR" cx="3" r="6" class="lamp-red"/><circle cx="22" r="6" class="lamp-off"/><circle id="svgBG" cx="41" r="6" class="lamp-off"/></g>
       <g id="activeDVehicle" class="active-d-vehicle" transform="translate(474 340)" style="display:none" role="img" aria-label="Xe đang được ghi nhận trong vùng D">
         <title>Xe có lượt vào chưa có lượt ra</title>
         <ellipse cy="18" rx="44" ry="9" fill="#0005"/>
@@ -183,45 +188,70 @@
   <div class="drawer-heading"><h2 id="functionDrawerTitle">Chức năng</h2><button id="closeFunctionDrawerBtn" type="button" class="icon-button" aria-label="Đóng bảng chức năng">×</button></div>
   <nav id="appMenu" class="drawer-functions" aria-label="Chức năng giám sát">
     <button id="showRecordsBtn" type="button" aria-pressed="false">Hồ sơ vào–ra</button>
-    <button id="showInsideBtn" type="button" aria-pressed="false">Xe đang bên trong</button>
-    <button id="showReviewBtn" type="button" aria-pressed="false">Hồ sơ cần kiểm tra</button>
-    <button id="newVisitBtn" type="button">＋ Nhập lượt xe</button>
     <button id="openSettingsBtn" type="button" aria-controls="cameraSettingsDialog">⚙ Cài đặt camera &amp; RTSP</button>
+    <button id="openEquipmentBtn" type="button" aria-controls="equipmentView" aria-pressed="false" hidden>Đèn &amp; barrier</button>
   </nav>
-  <div id="functionDrawerContent" class="drawer-content"><p id="drawerEmptyNote" class="drawer-empty note">Chọn một chức năng ở trên để thao tác. Sơ đồ và camera luôn được giữ bên cạnh.</p></div>
+  <div id="functionDrawerContent" class="drawer-content"><p id="drawerEmptyNote" class="drawer-empty note">Chọn chức năng ở trên để nhập dữ liệu hoặc xem hồ sơ. Camera vẫn hiển thị bên trái. Đóng bảng này để xem lại sơ đồ.</p></div>
 </aside>
 </div>
 
 <!-- Các khối được đưa vào bảng bên phải, giữ nguyên node và sự kiện đã gắn. -->
+<section id="equipmentView" class="equipment-view" aria-labelledby="equipmentTitle" hidden>
+  <div class="equipment-heading"><div><p class="equipment-eyebrow">KẾT NỐI THIẾT BỊ · MODBUS TCP</p><h2 id="equipmentTitle">Đèn tín hiệu &amp; barrier</h2></div><button id="equipmentRefreshBtn" type="button" class="icon-button" aria-label="Làm mới thiết bị" title="Làm mới thiết bị">↻</button></div>
+  <p class="equipment-intro">Thiết lập PLC đèn A/B và bộ điều khiển barrier. Kết nối để đọc trạng thái; cho phép điều khiển riêng khi sẵn sàng vận hành.</p>
+  <p id="equipmentServiceStatus" class="equipment-service-status" role="status">Đang đọc dịch vụ thiết bị…</p>
+  <div class="equipment-live"><span>TRẠNG THÁI THEO CAMERA</span><strong id="equipmentLiveStatus">Đang đọc trạng thái D…</strong><small id="equipmentLivePriority">Chưa xác định hướng ưu tiên</small></div>
+  <div class="equipment-tabs" role="tablist" aria-label="Thiết bị cần thiết lập"><button id="equipmentLightsTab" type="button" role="tab" aria-selected="true" aria-controls="equipmentLightsPanel">Đèn A / B</button><button id="equipmentBarrierTab" type="button" role="tab" aria-selected="false" aria-controls="equipmentBarrierPanel" tabindex="-1">Barrier</button></div>
+  <article id="equipmentLightsPanel" class="equipment-card" data-device="lights" role="tabpanel" aria-labelledby="equipmentLightsTab"><div class="equipment-card-heading"><div><span class="equipment-device-number">01</span><h3>Bộ điều khiển đèn A / B</h3></div><span id="equipmentLightsConnection" class="equipment-connection">Chưa cấu hình</span></div>
+    <div class="equipment-light-feedback"><div><span>ĐÈN A</span><strong id="equipmentSignalA" data-state="unknown">Chưa xác định</strong></div><div><span>ĐÈN B</span><strong id="equipmentSignalB" data-state="unknown">Chưa xác định</strong></div></div>
+    <p id="equipmentLightsFeedback" class="equipment-feedback">Chưa có phản hồi PLC</p>
+    <div id="equipmentLightsConfig" class="equipment-config-host"></div>
+    <div class="equipment-buttons"><button id="equipmentLightsConnectBtn" type="button" class="primary">Kết nối đèn</button><button id="equipmentLightsDisconnectBtn" type="button" disabled>Ngắt kết nối</button><button id="equipmentLightsEnableBtn" type="button" disabled>Cho phép điều khiển</button></div>
+    <div class="equipment-buttons equipment-commands"><button id="equipmentGreenABtn" type="button" disabled>A xanh · B đỏ</button><button id="equipmentGreenBBtn" type="button" disabled>B xanh · A đỏ</button><button id="equipmentAllRedBtn" type="button" disabled>Hai hướng đỏ</button><button id="equipmentAutoBtn" type="button" aria-pressed="false" disabled>Theo luồng camera</button></div>
+    <p id="equipmentLightsCommand" class="equipment-command-note">Chưa gửi lệnh</p><p id="equipmentLightsError" class="form-error" role="alert" hidden></p>
+  </article>
+  <article id="equipmentBarrierPanel" class="equipment-card" data-device="barrier" role="tabpanel" aria-labelledby="equipmentBarrierTab" hidden><div class="equipment-card-heading"><div><span class="equipment-device-number">02</span><h3>Bộ điều khiển barrier</h3></div><span id="equipmentBarrierConnection" class="equipment-connection">Chưa cấu hình</span></div>
+    <div class="equipment-barrier-feedback"><span>VỊ TRÍ THANH CHẮN</span><strong id="equipmentBarrierState">Chưa xác định</strong><small id="equipmentObstacleState">Cảm biến: chưa có dữ liệu</small></div>
+    <p id="equipmentBarrierFeedback" class="equipment-feedback">Chưa có phản hồi PLC</p>
+    <div id="equipmentBarrierConfig" class="equipment-config-host"></div>
+    <div class="equipment-buttons"><button id="equipmentBarrierConnectBtn" type="button" class="primary">Kết nối barrier</button><button id="equipmentBarrierDisconnectBtn" type="button" disabled>Ngắt kết nối</button><button id="equipmentBarrierEnableBtn" type="button" disabled>Cho phép điều khiển</button></div>
+    <div class="equipment-buttons equipment-commands"><button id="equipmentOpenBarrierBtn" type="button" class="primary" disabled>↑ Mở barrier</button><button id="equipmentCloseBarrierBtn" type="button" disabled>↓ Đóng barrier</button><button id="equipmentStopBarrierBtn" type="button" class="danger-button" disabled>■ Dừng barrier</button></div>
+    <p id="equipmentBarrierCommand" class="equipment-command-note">Chưa gửi lệnh</p><p id="equipmentBarrierError" class="form-error" role="alert" hidden></p>
+  </article>
+  <p id="equipmentActionStatus" class="equipment-action-status" role="status">Lưu cấu hình đúng theo PLC của khách, sau đó kết nối từng thiết bị.</p>
+  <details class="equipment-contract"><summary>Bảng lệnh cần cấu hình trên PLC</summary><p>Địa chỉ dưới đây dùng dạng offset bắt đầu từ 0. Thanh ghi lệnh, trạng thái và heartbeat là Holding Register; cảm biến barrier là Discrete Input.</p><div class="equipment-contract-scroll"><table><thead><tr><th>Thiết bị</th><th>Thanh ghi lệnh</th><th>Thanh ghi trạng thái</th></tr></thead><tbody><tr><td>Đèn A/B</td><td>0 = hai đỏ<br>1 = A xanh, B đỏ<br>2 = B xanh, A đỏ</td><td>0 / 1 / 2 = trạng thái tương ứng do PLC xác nhận</td></tr><tr><td>Barrier</td><td>1 = mở<br>2 = đóng<br>3 = dừng</td><td>0 = đóng; 1 = mở<br>2 = đang mở; 3 = đang đóng<br>4 = dừng giữa hành trình</td></tr></tbody></table></div><p>Cảm biến: 1 = có vật cản, 0 = thông thoáng. Backend tăng heartbeat mỗi giây khi cho phép điều khiển. PLC phải tự khóa hai xanh, chống kẹt và xử lý mất heartbeat; lệnh đóng không được bỏ qua cảm biến.</p><p class="note">Phản hồi trạng thái phải đọc từ ngõ ra / cảm biến của PLC, không chép lại thanh ghi lệnh. Modbus TCP không tự quy định bảng lệnh này: kỹ thuật viên cần lập trình PLC hoặc bổ sung bộ chuyển đổi cho thiết bị của khách.</p></details>
+</section>
 <section id="recordsView" class="records-view" aria-labelledby="recordsTitle" hidden>
+  <div class="records-controls">
   <div class="records-heading"><div><h2 id="recordsTitle">Hồ sơ xe vào–ra</h2><p id="recordsStorageInfo" class="note">Ngày giờ UTC+7 · ảnh bằng chứng theo từng lượt</p></div><button id="reloadRecordsBtn" type="button" class="icon-button" aria-label="Làm mới hồ sơ" title="Làm mới hồ sơ">↻</button></div>
-  <div class="records-current" aria-label="Xe đang giữ vùng D"><div><strong id="currentVisitStatus">Đang đọc trạng thái D…</strong><p id="currentVisitInfo" class="note"></p></div><div class="button-row"><button id="openCurrentVisitBtn" type="button" hidden>Xem lượt đang trong D</button><button id="openConfirmExitBtn" type="button" hidden>Xác nhận xe đã ra</button></div></div>
+  <details class="records-current"><summary><strong id="currentVisitStatus">Đang đọc trạng thái D…</strong></summary><p id="currentVisitInfo" class="note"></p><div class="button-row"><button id="openCurrentVisitBtn" type="button" hidden>Xem lượt đang trong D</button><button id="openConfirmExitBtn" type="button" hidden>Xác nhận xe đã ra</button></div></details>
   <p id="visitCounts" class="note" role="status"></p>
-  <div class="records-toolbar"><div class="records-list-tabs" role="group" aria-label="Danh sách hồ sơ"><button id="showActiveVisitsBtn" type="button" aria-pressed="true">Hồ sơ</button><button id="showDeletedVisitsBtn" type="button" aria-pressed="false">Thùng rác</button></div><span id="recordsStatus" class="note" role="status">Chưa tải hồ sơ</span></div>
+  <div class="records-toolbar"><span id="recordsStatus" class="note" role="status">Chưa tải hồ sơ</span></div>
   <details id="recordsFilterPanel" class="records-filter-panel">
     <summary>Tìm kiếm và bộ lọc <span id="filterSummary" class="note"></span></summary>
     <form id="recordsFilterForm" class="records-filter-grid">
       <label>Biển số<input id="filterPlate" type="search" maxlength="24" placeholder="Nhập một phần hoặc cả biển số"></label>
       <label>Khoảng ngày<select id="filterPeriod"><option value="all">Mọi thời điểm</option><option value="day">Theo ngày</option><option value="month">Theo tháng</option><option value="range">Khoảng thời gian</option></select></label>
-      <label>Trạng thái<select id="filterStatus"><option value="">Tất cả</option><option value="INSIDE">Đang bên trong</option><option value="COMPLETE">Đã ra</option><option value="WAITING">Chờ ngoài D</option><option value="NEEDS_REVIEW">Chưa đủ thông tin</option></select></label>
+      <label>Trạng thái<select id="filterStatus"><option value="">Tất cả</option><option value="INSIDE">Đang bên trong</option><option value="COMPLETE">Đã ra</option><option value="WAITING">Chờ ngoài D</option></select></label>
       <label>Cổng vào hoặc ra<select id="filterGate"><option value="">Tất cả cổng</option><option>A</option><option>B</option><option>C</option><option>E</option></select></label>
       <label id="filterDayField" hidden>Ngày (UTC+7)<input id="filterDay" type="date"></label>
       <label id="filterMonthField" hidden>Tháng (UTC+7)<input id="filterMonth" type="month"></label>
       <label id="filterFromField" hidden>Từ (bao gồm)<input id="filterFrom" type="datetime-local" step="1"></label>
       <label id="filterToField" hidden>Đến (trước thời điểm này)<input id="filterTo" type="datetime-local" step="1"></label>
       <label id="filterDateBasisField" hidden>Dựa theo<select id="filterDateBasis"><option value="any">Ngày giờ vào hoặc ra</option><option value="entry">Ngày giờ vào</option><option value="exit">Ngày giờ ra</option></select></label>
-      <label class="checkbox-label"><input id="filterReview" type="checkbox">Chỉ hồ sơ cần kiểm tra</label>
       <div class="button-row filter-actions"><button type="submit" class="primary">Áp dụng</button><button id="clearFiltersBtn" type="button">Xóa bộ lọc</button></div>
     </form>
   </details>
   <p id="recordsActionMessage" class="note" role="status" hidden></p>
   <p id="recordingHealthMessage" class="note" role="status" hidden></p>
-  <div class="records-table-wrap"><table class="records-table"><thead><tr><th>Biển số</th><th>Cổng vào / ngày giờ</th><th>Cổng ra / ngày giờ</th><th>Thời gian lưu lại</th><th>Trạng thái</th><th>Ảnh / thao tác</th></tr></thead><tbody id="visitsTableBody"></tbody></table></div>
+  </div>
+  <div class="records-table-wrap" tabindex="0" role="region" aria-label="Danh sách hồ sơ xe; cuộn ngang và dọc để xem các dòng và cột"><table class="records-table"><thead><tr><th scope="col">STT</th><th scope="col">Biển số</th><th scope="col">Cổng vào</th><th scope="col">Ngày giờ vào</th><th scope="col">Cổng ra</th><th scope="col">Ngày giờ ra</th><th scope="col">Thời gian lưu lại</th><th scope="col">Trạng thái</th><th scope="col">Ghi chú</th><th scope="col">Ảnh / thao tác</th></tr></thead><tbody id="visitsTableBody"></tbody></table></div>
+  <p class="records-scroll-hint">↔ Cuộn ngang để xem thêm cột · Biển số luôn được giữ bên trái</p>
   <div class="records-pagination"><span id="recordsPageInfo" class="note"></span><div><button id="recordsPreviousBtn" type="button">← Trước</button><button id="recordsNextBtn" type="button">Sau →</button></div></div>
 </section>
 
 <dialog id="visitEditorDialog" class="visit-editor-dialog" aria-labelledby="visitEditorTitle">
-  <div class="settings-heading"><div><h2 id="visitEditorTitle">Nhập lượt xe thủ công</h2><p class="note">Ngày giờ Việt Nam (UTC+7) · Thông tin chưa biết có thể để trống</p></div><button id="closeVisitEditorBtn" type="button" class="icon-button" aria-label="Đóng biểu mẫu hồ sơ">×</button></div>
+  <div class="settings-heading"><div><h2 id="visitEditorTitle">Sửa hồ sơ xe</h2><p class="note">Ngày giờ Việt Nam (UTC+7) · Thông tin chưa biết có thể để trống</p></div><button id="closeVisitEditorBtn" type="button" class="icon-button" aria-label="Đóng biểu mẫu hồ sơ">×</button></div>
   <form id="visitEditorForm" class="visit-editor-form">
     <p class="editor-notice">Lượt có giờ vào chưa có giờ ra sẽ giữ D và đèn đỏ. Ảnh bổ sung được ghi rõ là nhập tay; ảnh camera gốc luôn được giữ.</p>
     <div class="editor-grid">
@@ -232,7 +262,6 @@
       <label>Ngày giờ ra<input id="editExitedAt" type="datetime-local" step="1"></label>
       <label>Lý do nhập / sửa *<textarea id="editVisitReason" required minlength="5" maxlength="500" rows="2" placeholder="Căn cứ đã kiểm tra để bổ sung hoặc sửa"></textarea></label>
       <label>Ghi chú hồ sơ<textarea id="editVisitNotes" maxlength="1000" rows="2"></textarea></label>
-      <label>Đánh dấu cần kiểm tra<textarea id="editReviewNote" maxlength="1000" rows="2" placeholder="Nhập lý do; để trống nếu không cần đánh dấu riêng"></textarea></label>
     </div>
     <details class="editor-attachments"><summary>Đính kèm ảnh bổ sung</summary><p class="note">Tối đa 4 ảnh mỗi lần · JPEG, PNG, WebP · 2 MB mỗi ảnh · Không ghi đè ảnh cũ</p>
       <div class="editor-grid"><label>Loại ảnh<select id="editAttachmentDirection"><option value="other">Ảnh bổ sung chung</option><option value="entry">Ảnh lúc xe vào</option><option value="exit">Ảnh lúc xe ra</option></select></label><label>Chú thích ảnh<input id="editAttachmentNotes" maxlength="500"></label></div>
@@ -256,7 +285,7 @@
 </dialog>
 <dialog id="deleteVisitDialog" class="delete-visit-dialog" aria-labelledby="deleteVisitTitle">
   <div class="section-title"><h2 id="deleteVisitTitle">Xóa hồ sơ?</h2><button id="closeDeleteVisitBtn" type="button" class="icon-button" aria-label="Đóng xác nhận xóa">×</button></div>
-  <p>Chuyển hồ sơ <strong id="deleteVisitPlate"></strong> vào Thùng rác. Bạn có thể khôi phục lại cả hồ sơ và ảnh.</p>
+  <p>Xóa hồ sơ <strong id="deleteVisitPlate"></strong> khỏi danh sách hiển thị. Dữ liệu và ảnh bằng chứng vẫn được lưu trong cơ sở dữ liệu.</p>
   <p class="note">Xóa hồ sơ không kết thúc lượt xe. Nếu xe chưa được camera khác xác nhận ra, D vẫn có xe và đèn vẫn đỏ.</p>
   <p id="deleteVisitError" class="note" role="alert" hidden></p>
   <div class="button-row"><button id="cancelDeleteVisitBtn" type="button">Hủy</button><button id="confirmDeleteVisitBtn" class="danger-button" type="button">Xóa hồ sơ</button></div>

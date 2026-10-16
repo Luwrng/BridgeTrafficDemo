@@ -1,6 +1,7 @@
 # Hồ sơ, ảnh xe, cấu hình máy, backup và các kết quả chạy tại máy này.
 /Data/
 /artifacts/
+/outputs/
 /vlc-help.txt
 
 # Bí mật và môi trường cục bộ (chỉ commit mẫu cấu hình không có mật khẩu).

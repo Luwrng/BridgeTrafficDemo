@@ -109,13 +109,13 @@ class RecordTests(RecordFixture):
         self.assertEqual(len(list(self.store.images.iterdir())), 2)
         self.assertTrue(VisitStore(self.temp.name).occupancy()["occupied"])
 
-    def test_different_plate_waits_without_clearing_d_or_inventing_entry_time(self):
+    def test_waiting_plate_keeps_first_seen_time_without_clearing_d(self):
         self.store.record(self.event("inside"))
         waiting = self.store.record(self.event("wait", "B", "51F00651", seconds=2))
         self.assertEqual(waiting["state"], "waiting")
         visit = self.store.detail(waiting["visitIds"][0])
         self.assertEqual(visit["status"], "WAITING")
-        self.assertIsNone(visit["entered_at"])
+        self.assertEqual(visit["entered_at"], "2026-10-14T03:00:02.000+00:00")
         self.assertTrue(self.store.occupancy()["occupied"])
         self.assertEqual(self.store.occupancy()["vehicle"]["plate"], "51K73109")
         self.store.record(self.event("wait-repeat", "E", "51F00651", seconds=3))
@@ -131,8 +131,8 @@ class RecordTests(RecordFixture):
         result = self.store.record(self.event("new-wait", "B", "51F00651", seconds=5))
         self.assertEqual(result["visitIds"], waiting["visitIds"])
         visit = self.store.detail(result["visitIds"][0])
-        self.assertEqual(visit["entered_at"], "2026-10-14T03:00:05.000+00:00")
-        self.assertEqual(len(visit["passages"]),2)
+        self.assertEqual(visit["entered_at"], "2026-10-14T03:00:02.000+00:00")
+        self.assertEqual(len(visit["passages"]),1)
         self.assertEqual(visit["status"], "INSIDE")
 
     def test_other_camera_older_or_equal_frame_cannot_release_d(self):

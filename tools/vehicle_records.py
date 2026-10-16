@@ -18,6 +18,7 @@ import uuid
 from record_management import RecordManagementMixin
 
 CAMERAS = ("A", "B", "C", "E")
+GATE_LOGIC_VERSION = 5
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_DIR = ROOT / "Data" / "vehicle-records"
 
@@ -101,15 +102,27 @@ class VisitStore(RecordManagementMixin):
 
     @staticmethod
     def _occupancy(conn):
-        """D có xe iff còn lượt INSIDE. WAITING không chiếm D, không tính giờ vào."""
+        """D có xe iff còn lượt INSIDE. WAITING có giờ hồ sơ nhưng chưa chiếm D."""
         rows = conn.execute("SELECT id,plate,entry_camera,entered_at,entry_source,deleted_at FROM visits WHERE realm='real' AND status='INSIDE' AND exited_at IS NULL").fetchall()
         revision = conn.execute("SELECT revision FROM gate_state WHERE id=1").fetchone()[0]
         # DB cũ có nhiều lượt mở: giữ đèn đỏ, báo cần kiểm tra, không đoán xe ra.
         last_exit = conn.execute("""SELECT id,plate,entry_camera,exit_camera,entered_at,exited_at
-                                   FROM visits WHERE realm='real' AND status='COMPLETE' AND exited_at IS NOT NULL
+                                   FROM visits WHERE realm='real' AND status IN ('COMPLETE','NEEDS_REVIEW') AND exited_at IS NOT NULL
                                    ORDER BY exited_at DESC,id DESC LIMIT 1""").fetchone()
+        # Quyền xanh thuộc xe đang giữ D; khi D trống, lấy xe chờ sớm nhất.
+        # Không loại lượt đã ẩn: xóa hồ sơ không chứng minh xe đã rời hàng chờ.
+        next_row = conn.execute("""SELECT id,plate,entry_camera,entered_at,created_at FROM visits
+            WHERE realm='real' AND status='WAITING' AND exited_at IS NULL
+            ORDER BY created_at,entry_camera,id LIMIT 1""").fetchone()
+        next_vehicle = dict(next_row) if next_row else None
+        priority = dict(rows[0]) if len(rows)==1 else next_vehicle if not rows else None
+        # Chỉ A/B có đèn. Không đoán C/E tương ứng hướng A hoặc B.
+        green_gate = priority['entry_camera'] if priority and priority['entry_camera'] in ('A','B') else None
         return {"occupied": bool(rows), "vehicle": dict(rows[0]) if len(rows) == 1 else None,
                 "lastExit": dict(last_exit) if last_exit else None,
+                "nextVehicle": next_vehicle, "greenGate": green_gate,
+                "signals": {gate:'GREEN' if gate==green_gate else 'RED' for gate in ('A','B')},
+                "signalPolicyVersion": 1,
                 "revision": revision, "issue": "Có nhiều lượt chưa ra; cần đối chiếu hồ sơ" if len(rows) > 1 else None,
                 "waitingCount": conn.execute("SELECT COUNT(*) FROM visits WHERE realm='real' AND status='WAITING'").fetchone()[0]}
 
@@ -119,13 +132,13 @@ class VisitStore(RecordManagementMixin):
             return self._occupancy(conn)
 
     def record(self, event):
-        """Chỉ gọi từ worker sau khi xác nhận biển số trên RTSP riêng.
+        """Lần đọc đầu là giờ/cổng vào; camera khác cùng biển là giờ/cổng ra.
 
-        Khi D trống: camera đầu tiên → INSIDE và tất cả đèn đỏ.
-        Khi D có xe: cùng biển ở camera vào → bỏ lần lặp; khác biển → WAITING;
-        cùng biển ở camera khác, thời điểm mới hơn → COMPLETE, D trống.
-        Không tự cho xe chờ vào khi D vừa trống: cần camera đọc lại khung mới.
-        Sau khi ra, chỉ tạo lượt mới nếu biển đã ngừng xuất hiện ít nhất 5 giây.
+        Hồ sơ và quyền chiếm D là hai việc riêng: xe được thấy khi D bận
+        vẫn có giờ vào hồ sơ, nhưng trạng thái WAITING không chiếm D. Khi
+        camera khác thấy xe đó, đóng đúng lượt của nó; không giải phóng D
+        của xe khác. Quyền chiếm D tiếp theo theo FIFO; chỉ A hoặc B được
+        xanh khi đúng hướng ưu tiên. Hai hướng không được cùng xanh.
         """
         plate, camera = event["plate"], event["camera_id"]
         if camera not in CAMERAS or not re.fullmatch(r"\d{2}[A-Z]{1,2}\d{4,6}", plate) or event["source_kind"] != "live":
@@ -140,7 +153,7 @@ class VisitStore(RecordManagementMixin):
         created_files = []
         try:
             with self.connection() as conn:
-                # Serialize quyết định từ mọi camera, kể cả nhiều worker/process.
+                # Cùng khóa/transaction cho mọi camera và mọi worker.
                 conn.execute("BEGIN IMMEDIATE")
                 prior = conn.execute("SELECT visit_id,direction FROM passages WHERE event_key=?", (event["event_key"],)).fetchone()
                 if prior:
@@ -152,35 +165,49 @@ class VisitStore(RecordManagementMixin):
                 if released:
                     gap = (datetime.fromisoformat(at) - datetime.fromisoformat(released[0])).total_seconds()
                     if gap < 5:
-                        # Lưu suppression qua restart. Không lấy OCR còn tồn tại
-                        # trong khung sau lúc ra làm một lượt vào mới.
+                        # OCR còn trong khung sau lúc ra không tạo lại lượt vào.
                         conn.execute("UPDATE plate_release SET last_seen_at=MAX(last_seen_at,?) WHERE plate=?", (at, plate))
                         return {"state": "already-exited", "visitIds": [], "occupancy": current}
                     conn.execute("DELETE FROM plate_release WHERE plate=?", (plate,))
-                vehicle = current["vehicle"]
-                waiting = conn.execute("SELECT id,created_at FROM visits WHERE realm='real' AND plate=? AND status='WAITING' ORDER BY created_at LIMIT 1", (plate,)).fetchone()
-                if vehicle:
-                    if plate == vehicle["plate"]:
-                        if camera == vehicle["entry_camera"] or at <= vehicle["entered_at"]:
-                            return {"state": "already-inside", "visitIds": [], "occupancy": current}
-                        # Cổng được nhận diện bằng camera_id, không phải URL.
-                        # Người vận hành có thể dùng cùng RTSP để thử A -> B;
-                        # B vẫn là cổng ra khi xác nhận cùng biển ở khung mới.
-                        # Hash nguồn chỉ giữ làm metadata, không chặn lượt ra.
-                        action, visit_id = "exit", vehicle["id"]
-                    elif waiting:
-                        return {"state": "waiting", "visitIds": [], "occupancy": current}
-                    else:
-                        action, visit_id = "waiting", uuid.uuid4().hex
-                else:
-                    action, visit_id = "entry", waiting["id"] if waiting else uuid.uuid4().hex
-                    # Không dùng khung đến trễ trước thời điểm D được giải phóng.
-                    last_exit = conn.execute("SELECT MAX(exited_at) FROM visits WHERE realm='real'").fetchone()[0]
-                    if last_exit and at <= last_exit:
-                        return {"state": "stale-frame", "visitIds": [], "occupancy": current}
 
-                # Chỉ tạo ảnh khi có sự kiện thật mới. Ảnh toàn cảnh và ảnh crop
-                # thuộc cùng khung xác nhận, không lấy ảnh mẫu/hình thay thế.
+                # Ghép theo biển số của TỪNG lượt, không chỉ xe đang giữ D.
+                opened = conn.execute("""SELECT * FROM visits WHERE realm='real' AND plate=?
+                    AND status IN ('INSIDE','WAITING') AND exited_at IS NULL
+                    ORDER BY created_at,id LIMIT 1""", (plate,)).fetchone()
+                if opened:
+                    first_at = opened['entered_at'] or opened['created_at']
+                    waiting = opened['status']=='WAITING'
+                    if at <= first_at:
+                        return {"state": "waiting" if waiting else "already-inside", "visitIds": [], "occupancy": current}
+                    if camera != opened['entry_camera']:
+                        # ID cổng quyết định lượt ra, không phải URL RTSP.
+                        action, visit_id = 'exit', opened['id']
+                    elif waiting and not current['occupied']:
+                        last_exit=conn.execute("SELECT MAX(exited_at) FROM visits WHERE realm='real'").fetchone()[0]
+                        if last_exit and at <= last_exit:
+                            return {"state":"stale-frame","visitIds":[],"occupancy":current}
+                        if current['nextVehicle']['id'] != opened['id']:
+                            # D đã trống nhưng xe này đến sau: giữ trong hàng
+                            # chờ, không lấy D trước xe đang được ưu tiên xanh.
+                            return {"state":"waiting","visitIds":[],"occupancy":current}
+                        # D vừa trống, xe chờ được đọc mới tại cổng ban đầu.
+                        # Chỉ cấp quyền vào D; KHÔNG đổi giờ vào hồ sơ ban đầu,
+                        # không nhân đôi ảnh hoặc lượt bởi các khung lặp.
+                        conn.execute("""UPDATE visits SET status='INSIDE',entered_at=?,issue=NULL,
+                            deleted_at=NULL,edit_version=edit_version+1 WHERE id=?""",(first_at,opened['id']))
+                        conn.execute('UPDATE gate_state SET revision=revision+1 WHERE id=1')
+                        return {'state':'entry','visitIds':[opened['id']],'occupancy':self._occupancy(conn)}
+                    else:
+                        return {"state":"waiting" if waiting else "already-inside","visitIds":[],"occupancy":current}
+                else:
+                    last_exit=conn.execute("SELECT MAX(exited_at) FROM visits WHERE realm='real'").fetchone()[0]
+                    if last_exit and at <= last_exit:
+                        return {"state":"stale-frame","visitIds":[],"occupancy":current}
+                    # Một camera vừa đọc xe mới không được chen trước lượt chờ
+                    # cũ, kể cả khi worker của nó trả kết quả sớm hơn.
+                    action, visit_id = ('waiting' if current['occupied'] or current['nextVehicle'] else 'entry'), uuid.uuid4().hex
+
+                # Ảnh gốc/crop cùng khung xác nhận, ghi trong cùng transaction.
                 scene, crop = self.jpeg(event["scene"]), self.jpeg(event["crop"])
                 passage_id = uuid.uuid4().hex
                 scene_name, crop_name = f"{passage_id}_scene.jpg", f"{passage_id}_plate.jpg"
@@ -189,27 +216,25 @@ class VisitStore(RecordManagementMixin):
                     with target.open("xb") as stream:
                         created_files.append(target)
                         stream.write(image); stream.flush(); os.fsync(stream.fileno())
-                if action == "exit":
-                    conn.execute("UPDATE visits SET exited_at=?,exit_camera=?,status='COMPLETE',edit_version=edit_version+1 WHERE id=?", (at, camera, visit_id))
-                    conn.execute("INSERT OR REPLACE INTO plate_release VALUES (?,?)", (plate, at))
-                elif action == "entry" and waiting:
-                    # Đây là sự kiện vào mới sau khi D trống; đưa lượt chờ đã
-                    # bị ẩn trở lại danh sách để không mất lượt đang trong D.
-                    conn.execute("UPDATE visits SET entered_at=?,entry_camera=?,entry_source=?,status='INSIDE',issue=NULL,deleted_at=NULL,edit_version=edit_version+1 WHERE id=?", (at, camera, source_id, visit_id))
+                if action == 'exit':
+                    conn.execute("""UPDATE visits SET entered_at=?,exited_at=?,exit_camera=?,status='COMPLETE',issue=NULL,
+                        deleted_at=?,edit_version=edit_version+1 WHERE id=?""",
+                        (first_at,at,camera,None if waiting else opened['deleted_at'],visit_id))
+                    conn.execute('INSERT OR REPLACE INTO plate_release VALUES (?,?)',(plate,at))
                 else:
+                    # Kể cả xe chờ cũng lấy ngay thời điểm nhận diện đầu làm
+                    # giờ vào hồ sơ theo quy tắc người vận hành đã chốt.
                     conn.execute("""INSERT INTO visits(id,realm,plate,entered_at,entry_camera,status,issue,created_at,entry_source)
-                                    VALUES (?,'real',?,?,?,?,?,?,?)""",
-                                 (visit_id, plate, at if action == "entry" else None, camera,
-                                  "INSIDE" if action == "entry" else "WAITING",
-                                  None if action == "entry" else "Chờ ngoài D; chưa ghi thời gian vào", at, source_id))
+                        VALUES (?,'real',?,?,?,?,?,?,?)""",
+                        (visit_id,plate,at,camera,'WAITING' if action=='waiting' else 'INSIDE',
+                         'Chờ ngoài D' if action=='waiting' else None,at,source_id))
                 conn.execute("""INSERT INTO passages(id,visit_id,event_key,direction,camera_id,occurred_at,source_kind,source_name,media_time,
-                                confidence,scene_file,crop_file,scene_sha256,crop_sha256) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                             (passage_id, visit_id, event["event_key"], action, camera, at, "live", f"Camera {camera}",
-                              media_time, confidence, scene_name, crop_name, hashlib.sha256(scene).hexdigest(), hashlib.sha256(crop).hexdigest()))
-                conn.execute("UPDATE gate_state SET revision=revision+1 WHERE id=1")
-                return {"state": action, "visitIds": [visit_id], "occupancy": self._occupancy(conn)}
+                    confidence,scene_file,crop_file,scene_sha256,crop_sha256) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (passage_id,visit_id,event['event_key'],'exit' if action=='exit' else 'entry',camera,at,'live',f'Camera {camera}',
+                     media_time,confidence,scene_name,crop_name,hashlib.sha256(scene).hexdigest(),hashlib.sha256(crop).hexdigest()))
+                conn.execute('UPDATE gate_state SET revision=revision+1 WHERE id=1')
+                return {'state':action,'visitIds':[visit_id],'occupancy':self._occupancy(conn)}
         except Exception:
-            # Chỉ xóa file của transaction lỗi, không xóa bằng chứng đã commit.
             for filename in created_files:
                 filename.unlink(missing_ok=True)
             raise

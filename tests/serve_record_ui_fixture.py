@@ -5,6 +5,7 @@ Chỉ dùng lúc kiểm thử: python tests/serve_record_ui_fixture.py. Trang t�
 nghiệp vụ, không phải lượt xe thực tế. Ảnh fixture là ảnh RTSP đã chụp.
 """
 from datetime import datetime, timedelta, timezone
+import argparse
 import mimetypes
 from pathlib import Path
 import sys
@@ -50,6 +51,11 @@ class FixtureHandler(RecordHandler):
             self.respond(200, {"stopped": True})
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return
+        if self.path in ('/qa/enter-next','/qa/exit-next'):
+            entering=self.path=='/qa/enter-next'
+            self.respond(200,self.store.record(fixture_event('fixture-next-in' if entering else 'fixture-next-out',
+                'B' if entering else 'C','51F00651',2 if entering else 3)))
+            return
         if self.path != "/qa/exit":
             return super().do_POST()
         # Đường này chỉ tồn tại trong fixture, không có trong server ứng dụng.
@@ -65,9 +71,17 @@ def fixture_event(key, camera, plate, seconds):
 
 
 if __name__ == "__main__":
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--rows',type=int,default=0,choices=range(0,101),help='Số lượt đóng trong DB tạm để kiểm tra cuộn/phân trang')
+    args=parser.parse_args()
     START = datetime.now(timezone.utc)
     with tempfile.TemporaryDirectory(prefix="isolated-vehicle-ui-") as directory:
         FixtureHandler.store = VisitStore(directory)
+        for number in range(args.rows):
+            plate=f'51F{10000+number}'
+            seconds=-7200+number*60
+            FixtureHandler.store.record(fixture_event(f'list-in-{number}','A',plate,seconds))
+            FixtureHandler.store.record(fixture_event(f'list-out-{number}','C',plate,seconds+20))
         FixtureHandler.store.record(fixture_event("fixture-entry", "A", "51K73109", -120))
         FixtureHandler.store.record(fixture_event("fixture-wait", "B", "51F00651", -60))
         with RecordHTTPServer(("127.0.0.1", 5086), FixtureHandler) as server:

@@ -9,9 +9,10 @@ import os
 import re
 import socket
 from urllib.parse import parse_qs, urlsplit
-from vehicle_records import VisitStore
+from vehicle_records import VisitStore, GATE_LOGIC_VERSION
 from record_storage import create_visit_store
 from record_management import RecordConflict
+from modbus_equipment import EquipmentController, EquipmentError
 
 ALLOWED_ORIGINS = {f"http://{host}:{port}" for host in ("localhost", "127.0.0.1") for port in (5000, 5080, 5082)}
 
@@ -33,6 +34,7 @@ class RecordHTTPServer(ThreadingHTTPServer):
 
 class RecordHandler(BaseHTTPRequestHandler):
     store = None
+    equipment = None
     allowed_origins = ALLOWED_ORIGINS
 
     def log_message(self, *_):
@@ -69,10 +71,12 @@ class RecordHandler(BaseHTTPRequestHandler):
         route = urlsplit(self.path)
         params = parse_qs(route.query)
         try:
+            if route.path == '/api/equipment':
+                self.respond(200 if self.equipment else 503, self.equipment.snapshot() if self.equipment else {'error':'Dịch vụ thiết bị chưa sẵn sàng.'}); return
             if params.get("realm", ["real"])[0] != "real":
                 self.respond(400, {"error": "Chỉ phục vụ hồ sơ camera thật."}); return
             if route.path == "/status":
-                self.respond(200, {"available": True, "schemaVersion": 7, "serviceVersion": "4.0", "storage":self.store.storage_info()}); return
+                self.respond(200, {"available": True, "schemaVersion": 7, "serviceVersion": "4.3", "gateLogicVersion": GATE_LOGIC_VERSION, "storage":self.store.storage_info()}); return
             if route.path == "/api/occupancy":
                 self.respond(200, self.store.occupancy()); return
             if route.path in ("/api/visits", "/api/inside"):
@@ -113,6 +117,8 @@ class RecordHandler(BaseHTTPRequestHandler):
         if self.headers.get("Origin") not in self.allowed_origins | {None}:
             self.respond(403, {"error": "Chỉ cho phép ứng dụng local."}); return
         route = urlsplit(self.path).path
+        if route.startswith('/api/equipment/'):
+            return self.equipment_post(route)
         manual = route == '/api/visits/manual'
         action = re.fullmatch(r"/api/visits/([0-9a-f]{32})/(trash|restore|confirm-exit|edit)", route)
         if not action and not manual:
@@ -139,10 +145,42 @@ class RecordHandler(BaseHTTPRequestHandler):
         except Exception:
             self.respond(500, {"error": "Không cập nhật được hồ sơ trên ổ lưu."})
 
+    def equipment_post(self, route):
+        """Chỉ ứng dụng local, JSON có xác nhận; không nhận code hoặc đường dẫn."""
+        if not self.equipment:
+            self.respond(503, {'error':'Dịch vụ thiết bị chưa sẵn sàng.'}); return
+        try:
+            length = int(self.headers.get('Content-Length','0'))
+            if not 1 <= length <= 8192 or not self.headers.get('Content-Type','').startswith('application/json'):
+                raise EquipmentError('Cần yêu cầu JSON hợp lệ.')
+            payload = json.loads(self.rfile.read(length))
+            if not isinstance(payload,dict) or payload.get('confirm') is not True:
+                raise EquipmentError('Chưa xác nhận thao tác thiết bị.')
+            name = payload.get('device')
+            if name not in ('lights','barrier'):
+                raise EquipmentError('Thiết bị không hợp lệ.')
+            if route == '/api/equipment/configure':
+                result = self.equipment.configure(name,payload.get('config'))
+            elif route == '/api/equipment/connect':
+                result = self.equipment.connect(name)
+            elif route == '/api/equipment/action':
+                result = self.equipment.action(name,payload.get('action'))
+            else:
+                self.respond(404, {'error':'Đường dẫn thiết bị không tồn tại.'}); return
+            self.respond(200,result)
+        except (ValueError,TypeError) as error:
+            self.respond(400, {'error':str(error),'equipment':self.equipment.snapshot()})
+        except Exception:
+            self.respond(503, {'error':'Chưa thực hiện được thao tác thiết bị. Không xác nhận ngõ ra đã thay đổi.','equipment':self.equipment.snapshot()})
+
 
 if __name__ == "__main__":
     RecordHandler.store = create_visit_store()
+    RecordHandler.equipment = EquipmentController(RecordHandler.store.occupancy)
     server = RecordHTTPServer(("127.0.0.1", 5085), RecordHandler)
     server.daemon_threads = True
-    print("Vehicle records v4.0 ready on 127.0.0.1:5085", flush=True)
-    server.serve_forever()
+    print("Vehicle records v4.3 ready on 127.0.0.1:5085", flush=True)
+    try:
+        server.serve_forever()
+    finally:
+        RecordHandler.equipment.close()
